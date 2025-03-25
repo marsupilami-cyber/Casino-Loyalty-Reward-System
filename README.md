@@ -1,1 +1,1 @@
-# Casino-Loyalty-Reward-System
+# Casino Loyalty Reward System
