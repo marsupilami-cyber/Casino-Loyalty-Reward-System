@@ -1,3 +1,5 @@
+import redisClient from "../config/redis.config";
+
 import { Server } from "http";
 
 import { AppDataSource } from "../config/db";
@@ -14,6 +16,12 @@ export const gracefulShutdown = (server: Server) => {
         await AppDataSource.destroy();
         logger.info("Database connection closed");
       }
+
+      if (redisClient.isOpen) {
+        await redisClient.quit();
+        logger.info("Redis connection closed");
+      }
+
       process.exit(0);
     } catch (error) {
       logger.error("Error during graceful shutdown: ", error);

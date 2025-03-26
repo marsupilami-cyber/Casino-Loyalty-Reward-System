@@ -7,6 +7,7 @@
     "^(.*)css$"
   ],
   "importOrderSeparation": true,
+  "importOrderParserPlugins": ["typescript", "decorators"],
   "printWidth": 120,
   "singleQuote": false,
   "semi": true,
