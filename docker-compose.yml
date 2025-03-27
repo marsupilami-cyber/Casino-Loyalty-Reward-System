@@ -1,5 +1,5 @@
 services:
-  postgres:
+  users-postgres:
     image: postgres:latest
     environment:
       POSTGRES_USER: user
@@ -13,7 +13,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - users-data:/var/lib/postgresql/data
     networks:
       - casino
 
@@ -34,7 +34,7 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      postgres:
+      users-postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -43,7 +43,7 @@ services:
     environment:
       PORT: 3000
       NODE_ENV: development
-      DB_HOST: postgres
+      DB_HOST: users-postgres
       DB_PORT: 5432
       DB_USER: user
       DB_PASSWORD: password
@@ -99,8 +99,50 @@ services:
     networks:
       - casino
 
+  promotions-postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: promotions-service
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB'"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    ports:
+      - "5434:5432"
+    volumes:
+      - promotions-data:/var/lib/postgresql/data
+    networks:
+      - casino
+
+  promotions:
+    build: ./promotions
+    ports:
+      - "3001:3001"
+    depends_on:
+      promotions-postgres: 
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      NODE_ENV: development
+      DB_HOST: promotions-postgres
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: promotions-service
+      ACCESS_TOKEN_SECRET: 1be33b7da257ee02d36a5d690496d9f3021dcc8555b05702555fbc90e1ecbf33b03c908bb633630b80507efba23ba018bba4a0e3328da48aad3561c5f11352f9
+      REFRESH_TOKEN_SECRET: e839582f1f279d067f899565d4626ec243ba323ea138c4e283fe5bebb828b9d3e9d87a6b8b3cadab2648bb0e846a1117cf9b9f0b34ff26e42bb5474dd7f714b8
+    restart: unless-stopped
+    volumes:
+      - ./promotions:/app
+    networks:
+      - casino
+
 volumes:
-  postgres-data:
+  users-data:
+  promotions-data:
   kafka-data:
 
 networks:

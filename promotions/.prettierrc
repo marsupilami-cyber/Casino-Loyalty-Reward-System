@@ -1,0 +1,16 @@
+{
+  "importOrder": [
+    "^([a-zA-Z-_]+/*)+$(?!(css))",
+    "^@(?!src)[a-zA-Z-\\/]+$",
+    "^@src/(.*)$",
+    "^[./]+([a-zA-Z-_]+/*)+$(?!(css))",
+    "^(.*)css$"
+  ],
+  "importOrderSeparation": true,
+  "importOrderParserPlugins": ["typescript", "decorators"],
+  "printWidth": 120,
+  "singleQuote": false,
+  "semi": true,
+  "tabWidth": 2,
+  "plugins": ["@trivago/prettier-plugin-sort-imports"]
+}
