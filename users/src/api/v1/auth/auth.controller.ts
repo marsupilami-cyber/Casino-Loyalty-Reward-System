@@ -6,10 +6,10 @@ import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import express from "express";
 
-import refreshTokenMiddleware from "../../../middlewares/RefreshToken";
 import accessTokenMiddleware from "../../../middlewares/accessToken";
 import authorizeAdmin from "../../../middlewares/authorizeAdmin";
 import isActive from "../../../middlewares/isActive";
+import refreshTokenMiddleware from "../../../middlewares/refreshToken";
 import { ExtendedRequest, RolesEnum } from "../../../utility/types";
 
 const authService = new AuthService();

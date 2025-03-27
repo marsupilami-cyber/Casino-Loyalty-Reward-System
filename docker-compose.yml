@@ -38,6 +38,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
       PORT: 3000
       NODE_ENV: development
@@ -52,16 +54,54 @@ services:
       ACCESS_TOKEN_EXPIRATION: 10Min
       REFRESH_TOKEN_SECRET: e839582f1f279d067f899565d4626ec243ba323ea138c4e283fe5bebb828b9d3e9d87a6b8b3cadab2648bb0e846a1117cf9b9f0b34ff26e42bb5474dd7f714b8
       REFRESH_TOKEN_EXPIRATION: 24H
+      KAFKA_BROKER: kafka:9092
+      KAFKAJS_NO_PARTITIONER_WARNING: 1
     restart: unless-stopped
     volumes:
       - ./users:/app
-      # - users_node_modules:/app/node_modules
+    networks:
+      - casino
+
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_ENABLE_KRAFT: yes
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_KRAFT_CLUSTER_ID: GmOIfiOoQza2i1O3XPAyTA
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    volumes:
+      - kafka-data:/bitnami/kafka
+    networks:
+      - casino
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - casino
 
 volumes:
   postgres-data:
-  users_node_modules:
+  kafka-data:
 
 networks:
   casino:

@@ -3,6 +3,7 @@ import redisClient from "../config/redis.config";
 import { Server } from "http";
 
 import { AppDataSource } from "../config/db";
+import { producer } from "../config/kafka";
 import { logger } from "../config/logger";
 
 export const gracefulShutdown = (server: Server) => {
@@ -21,6 +22,9 @@ export const gracefulShutdown = (server: Server) => {
         await redisClient.quit();
         logger.info("Redis connection closed");
       }
+
+      await producer.disconnect();
+      logger.info("Kafka connection closed");
 
       process.exit(0);
     } catch (error) {

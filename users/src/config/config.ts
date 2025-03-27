@@ -17,4 +17,6 @@ export const config = {
   accessTokenExpiration: (process.env.ACCESS_TOKEN_EXPIRATION || "10Min") as StringValue,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET as string,
   refreshTokenExpiration: (process.env.REFRESH_TOKEN_EXPIRATION || "24H") as StringValue,
+
+  kafkaBroker: process.env.KAFKA_BROKER || "localhost:9092",
 };

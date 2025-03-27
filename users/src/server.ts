@@ -8,6 +8,7 @@ import * as swaggerUI from "swagger-ui-express";
 
 import { config } from "./config/config";
 import { connectDatabase } from "./config/db";
+import { connectKafka } from "./config/kafka";
 import { logger } from "./config/logger";
 import { swaggerSpecV1 } from "./config/swagger";
 import routes from "./routes";
@@ -33,7 +34,7 @@ const startServer = async () => {
   app.use("/", routes);
 
   try {
-    await Promise.all([connectDatabase(), connectRedis()]);
+    await Promise.all([connectDatabase(), connectRedis(), connectKafka()]);
   } catch (error) {
     logger.error(error);
     process.exit(1);

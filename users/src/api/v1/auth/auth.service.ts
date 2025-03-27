@@ -8,6 +8,7 @@ import { Repository } from "typeorm";
 
 import { config } from "../../../config/config";
 import { AppDataSource } from "../../../config/db";
+import { KafkaEvent, KafkaTopic, producer } from "../../../config/kafka";
 import { generateToken } from "../../../utility/generateToken";
 import { RolesEnum } from "../../../utility/types";
 
@@ -44,7 +45,21 @@ export class AuthService {
     user.password = hashedPassword;
     user.role = role;
 
-    return this.userRepo.save(user);
+    await this.userRepo.save(user);
+
+    if (role === RolesEnum.PLAYER) {
+      const eventData = {
+        user_id: user.id,
+        eventType: KafkaEvent.PlayerRegistered,
+      };
+
+      await producer.send({
+        topic: KafkaTopic.Player,
+        messages: [{ value: JSON.stringify(eventData) }],
+      });
+    }
+
+    return;
   }
 
   async login(loginDto: LoginDto) {

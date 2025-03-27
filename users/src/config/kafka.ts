@@ -1,0 +1,28 @@
+import { Kafka } from "kafkajs";
+
+import { config } from "./config";
+import { logger } from "./logger";
+
+export enum KafkaEvent {
+  PlayerRegistered = "PLAYER_REGISTERED",
+}
+
+export enum KafkaTopic {
+  Player = "player",
+}
+
+const kafka = new Kafka({
+  clientId: "users-service",
+  brokers: [config.kafkaBroker],
+  logLevel: 2,
+});
+
+export const producer = kafka.producer();
+
+export const connectKafka = async () => {
+  producer.on("producer.connect", () => {
+    logger.info("Kafka connected successfully");
+  });
+
+  await producer.connect();
+};
