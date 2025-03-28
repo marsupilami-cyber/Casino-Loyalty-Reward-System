@@ -5,11 +5,13 @@ import { NodeEnvEnum } from "../utility/types";
 export const config = {
   nodeEnv: (process.env.NODE_ENV as NodeEnvEnum) || NodeEnvEnum.DEVELOPMENT,
   port: Number(process.env.PORT) || 3000,
+
   dbHost: process.env.DB_HOST || "localhost",
-  dbPort: Number(process.env.DB_PORT) || 5432,
+  dbPort: Number(process.env.DB_PORT) || 5433,
   dbUser: process.env.DB_USER || "user",
   dbPassword: process.env.DB_PASSWORD || "password",
   dbName: process.env.DB_NAME || "test",
+
   redisHost: process.env.REDIS_HOST || "localhost",
   redisPort: Number(process.env.REDIS_PORT) || 6379,
 

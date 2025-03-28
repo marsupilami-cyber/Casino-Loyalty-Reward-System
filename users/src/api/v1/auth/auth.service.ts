@@ -1,6 +1,7 @@
 import redisClient, { getRefreshTokenKey } from "../../../config/redis.config";
 import User from "../users/users.model";
-import { LoginDto } from "./dto/login.dto";
+import { LoginInputDto } from "./dto/login.dto";
+import { RegisterInputDto } from "./dto/user.dto";
 
 import bcrypt from "bcryptjs";
 import ms from "ms";
@@ -11,11 +12,6 @@ import { AppDataSource } from "../../../config/db";
 import { KafkaEvent, KafkaTopic, producer } from "../../../config/kafka";
 import { generateToken } from "../../../utility/generateToken";
 import { RolesEnum } from "../../../utility/types";
-
-export type LoginResponse = {
-  accessToken: string;
-  refreshToken: string;
-};
 
 export class AuthService {
   private userRepo: Repository<User>;
@@ -34,14 +30,16 @@ export class AuthService {
     return this.redisService;
   }
 
-  async register(user: User, role: RolesEnum) {
-    const exists = await this.userRepo.existsBy({ email: user.email });
+  async register(userDto: RegisterInputDto, role: RolesEnum) {
+    const exists = await this.userRepo.existsBy({ email: userDto.email });
     if (exists) {
       throw new Error("User already registered");
     }
 
-    const hashedPassword = await bcrypt.hash(user.password, 12);
+    const hashedPassword = await bcrypt.hash(userDto.password, 12);
 
+    const user = new User();
+    user.email = userDto.email;
     user.password = hashedPassword;
     user.role = role;
 
@@ -59,10 +57,10 @@ export class AuthService {
       });
     }
 
-    return;
+    return user;
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginInputDto) {
     const user = await this.userRepo.findOne({
       where: { email: loginDto.email },
     });

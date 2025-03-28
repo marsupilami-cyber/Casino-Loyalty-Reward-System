@@ -1,6 +1,6 @@
-import User from "../users/users.model";
 import { AuthService } from "./auth.service";
-import { LoginDto } from "./dto/login.dto";
+import { LoginInputDto, LoginOutputDto } from "./dto/login.dto";
+import { RegisterInputDto, UserOutputDto } from "./dto/user.dto";
 
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
@@ -27,21 +27,19 @@ const router = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
+ *             $ref: "#/components/schemas/RegisterInputDto"
  *     responses:
  *       '200':
  *         description: User registered successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserOutputDto'
  *       '400':
  *         description: Validation error.
  */
 router.post("/register", async (req, res, next) => {
-  const userDto = plainToInstance(User, req.body);
+  const userDto = plainToInstance(RegisterInputDto, req.body);
   const errors = await validate(userDto);
   if (errors.length > 0) {
     res.json({
@@ -52,7 +50,9 @@ router.post("/register", async (req, res, next) => {
   }
 
   try {
-    const data = await authService.register(userDto, RolesEnum.PLAYER);
+    const user = await authService.register(userDto, RolesEnum.PLAYER);
+
+    const data = plainToInstance(UserOutputDto, user, { excludeExtraneousValues: true });
 
     res.json({ data, message: "User registered" });
   } catch (error) {
@@ -71,13 +71,7 @@ router.post("/register", async (req, res, next) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
+ *             $ref: "#/components/schemas/LoginInputDto"
  *     responses:
  *       '200':
  *         description: User logged in successfully.
@@ -90,17 +84,14 @@ router.post("/register", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 accessToken:
- *                   type: string
+ *               $ref: '#/components/schemas/LoginOutputDto'
  *       '400':
  *         description: Validation error.
  *       '401':
  *         description: Unauthorized.
  */
 router.post("/login", async (req, res, next) => {
-  const loginDto = plainToInstance(LoginDto, req.body);
+  const loginDto = plainToInstance(LoginInputDto, req.body);
 
   const errors = await validate(loginDto);
   if (errors.length > 0) {
@@ -111,10 +102,12 @@ router.post("/login", async (req, res, next) => {
     return;
   }
   try {
-    const data = await authService.login(loginDto);
-    res
-      .cookie("refreshToken", data.refreshToken, { httpOnly: true, sameSite: "strict" })
-      .json({ accessToken: data.accessToken });
+    const user = await authService.login(loginDto);
+
+    const data = new LoginOutputDto();
+    data.accessToken = user.accessToken;
+
+    res.cookie("refreshToken", user.refreshToken, { httpOnly: true, sameSite: "strict" }).json(data);
   } catch (error) {
     // TODO: handle default error
     next(error);
@@ -134,28 +127,19 @@ router.post("/login", async (req, res, next) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
+ *             $ref: "#/components/schemas/RegisterInputDto"
  *     responses:
  *       '200':
  *         description: User registered successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserOutputDto'
  *       '400':
  *         description: Validation error.
- * components:
- *   securitySchemes:
- *     BearerAuth:
- *       type: http
- *       in: header
- *       scheme: bearer
- *       bearerFormat: JWT
  */
 router.post("/register-staff", accessTokenMiddleware, isActive, authorizeAdmin, async (req, res, next) => {
-  const userDto = plainToInstance(User, req.body);
+  const userDto = plainToInstance(RegisterInputDto, req.body);
   const errors = await validate(userDto);
   if (errors.length > 0) {
     res.json({
@@ -167,7 +151,9 @@ router.post("/register-staff", accessTokenMiddleware, isActive, authorizeAdmin, 
   }
 
   try {
-    const data = await authService.register(userDto, RolesEnum.STAFF);
+    const user = await authService.register(userDto, RolesEnum.STAFF);
+
+    const data = plainToInstance(UserOutputDto, user, { excludeExtraneousValues: true });
 
     res.json({ data, message: "User registered" });
   } catch (error) {

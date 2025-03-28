@@ -7,7 +7,7 @@ import { RolesEnum } from "../../../utility/types";
 
 @Entity({ name: "users" })
 class User {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   @IsEmail()
