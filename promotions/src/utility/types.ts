@@ -15,3 +15,9 @@ export interface ExtendedRequest extends Request {
   role?: string;
   active?: boolean;
 }
+
+export enum PromotionType {
+  PLAYER_REGISTERED = "PLAYER_REGISTERED",
+  VIP = "VIP_PROMOTION",
+  BONUS = "BONUS",
+}

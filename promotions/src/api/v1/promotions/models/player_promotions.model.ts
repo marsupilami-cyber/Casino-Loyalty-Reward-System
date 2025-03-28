@@ -15,11 +15,11 @@ class PlayerPromotion {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column({ type: "uuid" })
-  player_id!: string;
+  @Column({ type: "uuid", name: "player_id" })
+  playerId!: string;
 
-  @Column({ type: "uuid" })
-  promotion_id!: string;
+  @Column({ type: "uuid", name: "promotion_id" })
+  promotionId!: string;
 
   @ManyToOne(() => Promotion, (promotion) => promotion.id, { eager: true })
   @JoinColumn({ name: "promotion_id" })
@@ -28,11 +28,11 @@ class PlayerPromotion {
   @Column({ type: "boolean", default: false })
   claimed!: boolean;
 
-  @CreateDateColumn()
-  created_at!: Date;
+  @CreateDateColumn({ name: "created_at" })
+  createdAt!: Date;
 
-  @UpdateDateColumn()
-  updated_at!: Date;
+  @UpdateDateColumn({ name: "updated_at" })
+  updatedAt!: Date;
 }
 
 export default PlayerPromotion;

@@ -1,6 +1,9 @@
 import PlayerPromotion from "./player_promotions.model";
 
+import { Expose } from "class-transformer";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+
+import { PromotionType } from "../../../../utility/types";
 
 @Entity({ name: "promotions" })
 class Promotion {
@@ -13,20 +16,30 @@ class Promotion {
   @Column({ type: "text" })
   description!: string;
 
-  @Column({ type: "boolean", default: true })
+  @Column({ name: "is_active", type: "boolean", default: true })
   isActive!: boolean;
 
+  @Column({
+    type: "enum",
+    enum: PromotionType,
+    enumName: "type",
+    default: PromotionType.BONUS,
+    name: "promotion_type",
+  })
+  type!: PromotionType;
+
   @Column({ type: "decimal", precision: 10, scale: 2 })
-  amount!: number;
+  amount!: string;
 
   @OneToMany(() => PlayerPromotion, (playerPromotion) => playerPromotion.promotion)
   playerPromotions!: PlayerPromotion[];
 
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  @Expose({ name: "start_date" })
+  @Column({ name: "start_date", type: "date", default: () => "CURRENT_DATE" })
   startDate!: Date;
 
-  @Column({ type: "timestamp", nullable: true })
-  endDate?: Date;
+  @Column({ name: "end_date", type: "date" })
+  endDate!: Date;
 }
 
 export default Promotion;
