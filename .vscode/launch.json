@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Attach to Docker users container",
+        "type": "node",
+        "request": "attach",
+        "port": 9229,
+        "address": "localhost",
+        "restart": true,
+        "localRoot": "${workspaceFolder}/users",
+        "remoteRoot": "/app",
+        "sourceMaps": true
+      }, 
+      {
+        "name": "Debug users tests",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}/users",
+        "runtimeExecutable": "${workspaceFolder}/users/node_modules/.bin/jest",
+        "args": [
+          "--runInBand",
+          "--no-cache",
+          "--config", "${workspaceFolder}/users/jest.config.js",
+        ],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "skipFiles": ["<node_internals>/**"],
+      },
+      {
+        "name": "Attach to Docker promotions container",
+        "type": "node",
+        "request": "attach",
+        "port": 9228,
+        "address": "localhost",
+        "restart": true,
+        "localRoot": "${workspaceFolder}/promotions",
+        "remoteRoot": "/app",
+        "sourceMaps": true
+      }, 
+    ]
+  }
