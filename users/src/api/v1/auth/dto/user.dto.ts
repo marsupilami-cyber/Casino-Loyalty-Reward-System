@@ -62,11 +62,11 @@ export class RegisterInputDto {
  *             - PLAYER
  *             - ADMIN
  *           description: The role of the user
- *         created_at:
+ *         createdAt:
  *           type: string
  *           format: date-time
  *           description: The date and time when the user was created
- *         updated_at:
+ *         updatedAt:
  *           type: string
  *           format: date-time
  *           description: The date and time when the user was last updated
@@ -76,28 +76,28 @@ export class RegisterInputDto {
  *         - active
  *         - balance
  *         - role
- *         - created_at
- *         - updated_at
+ *         - createdAt
+ *         - updatedAt
  */
 export class UserOutputDto {
-  @Expose({ name: "id" })
+  @Expose()
   id!: string;
 
-  @Expose({ name: "email" })
+  @Expose()
   email!: string;
 
-  @Expose({ name: "active" })
+  @Expose()
   active!: boolean;
 
-  @Expose({ name: "balance" })
+  @Expose()
   balance!: number;
 
-  @Expose({ name: "role" })
+  @Expose()
   role!: RolesEnum;
 
-  @Expose({ name: "created_at" })
+  @Expose()
   createdAt!: Date;
 
-  @Expose({ name: "updated_at" })
+  @Expose()
   updatedAt!: Date;
 }

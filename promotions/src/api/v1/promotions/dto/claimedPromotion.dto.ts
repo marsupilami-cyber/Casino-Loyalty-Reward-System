@@ -1,13 +1,30 @@
 import { Expose } from "class-transformer";
 import { IsUUID, IsNotEmpty } from "class-validator";
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ClaimPromotionDto:
+ *       type: object
+ *       required:
+ *         - userId
+ *         - promotionId
+ *       properties:
+ *         userId:
+ *           type: string
+ *           format: uuid
+ *           description: The ID of the user
+ *         promotionId:
+ *           type: string
+ *           format: uuid
+ *           description: The ID of the promotion
+ */
 export class ClaimPromotionDto {
-  @Expose({ name: "user_id" })
   @IsUUID()
   @IsNotEmpty()
   userId!: string;
 
-  @Expose({ name: "promotion_id" })
   @IsUUID()
   @IsNotEmpty()
   promotionId!: string;

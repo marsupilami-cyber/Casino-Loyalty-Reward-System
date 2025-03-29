@@ -153,7 +153,10 @@ router.post("/register-staff", accessTokenMiddleware, isActive, authorizeAdmin, 
   try {
     const user = await authService.register(userDto, RolesEnum.STAFF);
 
-    const data = plainToInstance(UserOutputDto, user, { excludeExtraneousValues: true });
+    const data = plainToInstance(UserOutputDto, user, {
+      excludeExtraneousValues: true,
+      enableImplicitConversion: true,
+    });
 
     res.json({ data, message: "User registered" });
   } catch (error) {

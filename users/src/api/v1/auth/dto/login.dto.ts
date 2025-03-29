@@ -34,12 +34,12 @@ export class LoginInputDto {
  *     LoginOutputDto:
  *       type: object
  *       properties:
- *         access_token:
+ *         accessToken:
  *           type: string
  *           description: JWT access token
  *           example: "eyJhbGciOiJIUzI1NiIsInR..."
  */
 export class LoginOutputDto {
-  @Expose({ name: "access_token" })
+  @Expose()
   accessToken!: string;
 }

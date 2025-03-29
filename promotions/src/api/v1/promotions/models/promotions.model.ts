@@ -1,6 +1,5 @@
 import PlayerPromotion from "./player_promotions.model";
 
-import { Expose } from "class-transformer";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 
 import { PromotionType } from "../../../../utility/types";
@@ -34,7 +33,6 @@ class Promotion {
   @OneToMany(() => PlayerPromotion, (playerPromotion) => playerPromotion.promotion)
   playerPromotions!: PlayerPromotion[];
 
-  @Expose({ name: "start_date" })
   @Column({ name: "start_date", type: "date", default: () => "CURRENT_DATE" })
   startDate!: Date;
 

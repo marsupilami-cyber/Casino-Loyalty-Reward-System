@@ -27,7 +27,7 @@ class User {
   @Column("decimal", {
     precision: 10,
     scale: 2,
-    nullable: true,
+    default: 0,
     transformer: {
       to(value) {
         return value;
@@ -49,11 +49,11 @@ class User {
   @OneToMany(() => Transaction, (transactions) => transactions.user)
   transactions!: Transaction[];
 
-  @CreateDateColumn()
-  created_at!: Date;
+  @CreateDateColumn({ name: "created_at" })
+  createdAt!: Date;
 
-  @UpdateDateColumn()
-  updated_at!: Date;
+  @UpdateDateColumn({ name: "updated_at" })
+  updatedAt!: Date;
 }
 
 export default User;

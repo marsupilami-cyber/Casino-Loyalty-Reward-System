@@ -48,7 +48,7 @@ export class AuthService {
     if (role === RolesEnum.PLAYER) {
       const eventData = {
         user_id: user.id,
-        eventType: KafkaEvent.PlayerRegistered,
+        event_type: KafkaEvent.PlayerRegistered,
       };
 
       await producer.send({

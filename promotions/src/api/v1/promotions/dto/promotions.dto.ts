@@ -1,5 +1,4 @@
 import { Expose } from "class-transformer";
-import { IsString, IsOptional, IsDateString, IsNotEmpty, IsEnum, IsDecimal } from "class-validator";
 
 import { PromotionType } from "../../../../utility/types";
 
@@ -7,15 +6,14 @@ import { PromotionType } from "../../../../utility/types";
  * @swagger
  * components:
  *   schemas:
- *     CreatePromotionDto:
+ *     PromotionOutputDto:
  *       type: object
- *       required:
- *         - title
- *         - description
- *         - amount
- *         - startDate
- *         - endDate
  *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *           description: Unique identifier of the promotion
+ *           example: "123e4567-e89b-12d3-a456-426614174000"
  *         title:
  *           type: string
  *           description: Title of the promotion
@@ -24,6 +22,15 @@ import { PromotionType } from "../../../../utility/types";
  *           type: string
  *           description: Description of the promotion
  *           example: "Get a welcome bonus on registration"
+ *         isActive:
+ *           type: boolean
+ *           description: Whether the promotion is currently active
+ *           example: true
+ *         type:
+ *           type: string
+ *           description: The type of the promotion (if applicable)
+ *           enum: [WELCOME_BONUS, VIP_PROMOTION, BONUS]
+ *           example: "WELCOME_BONUS"
  *         amount:
  *           type: string
  *           description: The amount of the promotion
@@ -38,34 +45,29 @@ import { PromotionType } from "../../../../utility/types";
  *           format: date-time
  *           description: The end date of the promotion
  *           example: "2025-01-10T23:59:59Z"
- *         type:
- *           type: string
- *           description: The type of the promotion (if applicable)
- *           enum: [WELCOME_BONUS, VIP_PROMOTION, BONUS]
- *           example: "WELCOME_BONUS"
  */
-export class CreatePromotionDto {
-  @IsString()
-  @IsNotEmpty()
+export class PromotionOutputDto {
+  @Expose()
+  id!: string;
+
+  @Expose()
   title!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @Expose()
   description!: string;
 
-  @IsNotEmpty()
-  @IsDecimal({ force_decimal: true, decimal_digits: "1,2" })
-  amount!: string;
+  @Expose()
+  isActive!: boolean;
 
-  @IsDateString()
-  @IsNotEmpty()
-  startDate!: Date;
-
-  @IsOptional()
-  @IsEnum(PromotionType)
+  @Expose()
   type!: PromotionType;
 
-  @IsDateString()
-  @IsNotEmpty()
+  @Expose()
+  amount!: string;
+
+  @Expose()
+  startDate!: Date;
+
+  @Expose()
   endDate!: Date;
 }
