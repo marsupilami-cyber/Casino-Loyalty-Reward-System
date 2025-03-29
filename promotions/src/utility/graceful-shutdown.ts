@@ -1,6 +1,7 @@
 import { Server } from "http";
 
 import { AppDataSource } from "../config/db";
+import { consumer, producer } from "../config/kafka";
 import { logger } from "../config/logger";
 
 export const gracefulShutdown = (server: Server) => {
@@ -13,6 +14,12 @@ export const gracefulShutdown = (server: Server) => {
       await AppDataSource.destroy();
       logger.info("Database connection closed");
     }
+
+    await producer.disconnect();
+    logger.info("Kafka producer connection closed");
+
+    await consumer.disconnect();
+    logger.info("Kafka consumer connection closed");
 
     try {
       process.exit(0);

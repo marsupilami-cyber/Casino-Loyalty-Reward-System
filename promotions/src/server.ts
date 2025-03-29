@@ -1,3 +1,5 @@
+import assignPromotionConsumer from "./api/v1/promotions/kafka/assignPromotionConsumer";
+
 import express from "express";
 import { Server } from "http";
 import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
@@ -6,6 +8,8 @@ import * as swaggerUI from "swagger-ui-express";
 import routes from "../src/routes";
 import { config } from "./config/config";
 import { connectDatabase } from "./config/db";
+import { waitForGrpcClient } from "./config/grpc";
+import { connectKafka } from "./config/kafka";
 import { logger } from "./config/logger";
 import { swaggerSpecV1 } from "./config/swagger";
 import { gracefulShutdown } from "./utility/graceful-shutdown";
@@ -29,7 +33,8 @@ const startServer = async () => {
   app.use("/", routes);
 
   try {
-    await Promise.all([connectDatabase()]);
+    await Promise.all([connectDatabase(), connectKafka()]);
+    await assignPromotionConsumer();
   } catch (error) {
     logger.error(error);
     process.exit(1);

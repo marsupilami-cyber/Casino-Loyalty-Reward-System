@@ -4,9 +4,11 @@ import { GetPromotionsDto } from "./dto/getPromotions.dto";
 import PlayerPromotion from "./models/player_promotions.model";
 import Promotion from "./models/promotions.model";
 
-import { In, LessThanOrEqual, MoreThanOrEqual, Raw, Repository } from "typeorm";
+import { In, LessThanOrEqual, MoreThanOrEqual, Repository } from "typeorm";
 
 import { AppDataSource } from "../../../config/db";
+import { PromotionType, uniquePromotionTypes } from "../../../utility/types";
+import { sendNotificationProducer } from "./kafka/sendNotification";
 
 export class PromotionService {
   private promotionRepo: Repository<Promotion>;
@@ -17,32 +19,32 @@ export class PromotionService {
     this.playerPromotionRepo = AppDataSource.getRepository(PlayerPromotion);
   }
 
-  createPromotion = async (promotionData: CreatePromotionDto) => {
+  async createPromotion(promotionData: CreatePromotionDto) {
     try {
-      const existingPromotion = await this.promotionRepo.findOne({
-        where: {
-          type: promotionData.type,
-          isActive: true,
-          startDate: LessThanOrEqual(promotionData.endDate),
-          endDate: MoreThanOrEqual(promotionData.startDate),
-        },
-      });
+      if (uniquePromotionTypes.includes(promotionData.type)) {
+        const existingPromotion = await this.promotionRepo.findOne({
+          where: {
+            type: promotionData.type,
+            isActive: true,
+            startDate: LessThanOrEqual(promotionData.endDate),
+            endDate: MoreThanOrEqual(promotionData.startDate),
+          },
+        });
 
-      if (existingPromotion) {
-        throw new Error("Promotion already exists in selected range.");
+        if (existingPromotion) {
+          throw new Error("Promotion already exists in selected range.");
+        }
       }
 
-      const promotion = await this.promotionRepo.save(promotionData);
-
-      return { data: promotion };
+      return await this.promotionRepo.save(promotionData);
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
       }
     }
-  };
+  }
 
-  getPromotions = async (filters: GetPromotionsDto) => {
+  async getPromotions(filters: GetPromotionsDto) {
     const { userId, promotionId, isActive, startDate, endDate, type, limit = 10, offset = 0 } = filters;
 
     const paginationLimit = limit || 10;
@@ -61,15 +63,15 @@ export class PromotionService {
       }
 
       if (isActive !== undefined) {
-        queryBuilder.andWhere("promotions.is_active = :is_active", { isActive });
+        queryBuilder.andWhere("promotions.is_active = :isActive", { isActive });
       }
 
       if (startDate) {
-        queryBuilder.andWhere("promotions.start_date >= :start_date", { startDate });
+        queryBuilder.andWhere("promotions.start_date >= :startDate", { startDate });
       }
 
       if (endDate) {
-        queryBuilder.andWhere("promotions.end_date <= :end_date", { endDate });
+        queryBuilder.andWhere("promotions.end_date <= :endDate", { endDate });
       }
 
       if (type) {
@@ -87,7 +89,7 @@ export class PromotionService {
         throw new Error(error.message);
       }
     }
-  };
+  }
 
   claimPromotion = async (claimDto: ClaimPromotionDto) => {
     try {
@@ -129,7 +131,7 @@ export class PromotionService {
     }
   };
 
-  assignPromotion = async (promotionId: string, playerIds: string[]) => {
+  async assignPromotion(promotionId: string, playerIds: string[]) {
     try {
       const promotion = await this.promotionRepo.findOne({
         where: { id: promotionId },
@@ -162,18 +164,42 @@ export class PromotionService {
       const newPlayerIds = playerIds.filter((id) => !existingPlayerIds.includes(id));
 
       if (newPlayerIds.length === 0) {
-        return { message: "All players already have this promotion" };
+        throw new Error("All players already have this promotion");
       }
+      const newAssignments = newPlayerIds.map((playerId) => ({ playerId, promotionId }));
 
-      const newAssignments = newPlayerIds.map((playerId) => this.playerPromotionRepo.create({ playerId, promotionId }));
+      await this.playerPromotionRepo.insert(newAssignments);
 
-      await this.playerPromotionRepo.save(newAssignments);
+      await Promise.allSettled(newPlayerIds.map((userId) => sendNotificationProducer(userId, promotion)));
 
-      return newAssignments;
+      return;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
       }
     }
-  };
+  }
+
+  async assignRegisteredPromotion(playerId: string) {
+    try {
+      const now = new Date();
+      const promotion = await this.promotionRepo.findOne({
+        where: {
+          isActive: true,
+          type: PromotionType.WELCOME_BONUS,
+          startDate: LessThanOrEqual(now),
+          endDate: MoreThanOrEqual(now),
+        },
+      });
+      if (!promotion) {
+        return;
+      }
+      await this.playerPromotionRepo.insert({ playerId, promotionId: promotion.id });
+      await sendNotificationProducer(playerId, promotion);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+    }
+  }
 }
