@@ -1,0 +1,25 @@
+syntax="proto3";
+
+package transaction;
+
+enum TransactionType {
+    CREDIT  = 0;
+    DEBIT  = 1;
+}
+
+message TransactionRequest {
+  string user_id = 1;              
+  double amount = 2;                 
+  TransactionType transaction_type = 3;
+  string description= 4;
+  string additional_data = 5;       
+}
+
+message UserResponse {
+string id = 1;                     
+double balance = 2;               
+}
+
+service TransactionService {
+rpc addTransaction (TransactionRequest) returns (UserResponse);
+}

@@ -12,8 +12,8 @@ export enum RolesEnum {
 }
 
 export enum TransactionTypesEnum {
-  CREDIT = "CREDIT",
-  DEBIT = "DEBIT",
+  CREDIT = 0,
+  DEBIT = 1,
 }
 
 export interface ExtendedRequest extends Request {

@@ -4,14 +4,18 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "node --watch -r ts-node/register src/server.ts",
+    "debug": "node --watch --inspect=0.0.0.0:9229 -r ts-node/register src/server.ts",
     "build": "tsc",
     "test": "jest",
     "test-coverage": "jest --coverage --coverageProvider=v8 --coverageReporters=text --coverageReporters=text-summary",
     "format": "prettier --write .",
     "lint": "eslint . ",
-    "lint:fix": "eslint . --fix "
+    "lint:fix": "eslint . --fix ",
+    "proto:build": "npx proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=src/protogen/ src/proto/*.proto"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.13.2",
+    "@grpc/proto-loader": "^0.7.13",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/jsonwebtoken": "^9.0.9",
     "bcryptjs": "^3.0.2",

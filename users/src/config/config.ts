@@ -5,6 +5,7 @@ import { NodeEnvEnum } from "../utility/types";
 export const config = {
   nodeEnv: (process.env.NODE_ENV as NodeEnvEnum) || NodeEnvEnum.DEVELOPMENT,
   port: Number(process.env.PORT) || 3000,
+  grpcPort: Number(process.env.GRPC_PORT) || 50051,
 
   dbHost: process.env.DB_HOST || "localhost",
   dbPort: Number(process.env.DB_PORT) || 5433,

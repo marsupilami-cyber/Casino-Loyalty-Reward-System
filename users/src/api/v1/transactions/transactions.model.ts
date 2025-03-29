@@ -30,8 +30,9 @@ class Transaction {
   @Column({
     type: "enum",
     enum: TransactionTypesEnum,
+    name: "transaction_type",
   })
-  transaction_type!: TransactionTypesEnum;
+  transactionType!: TransactionTypesEnum;
 
   @Column({ type: "varchar", length: 255 })
   description!: string;
@@ -39,8 +40,8 @@ class Transaction {
   @CreateDateColumn()
   timestamp!: Date;
 
-  @Column({ type: "json", nullable: true })
-  additional_data?: Record<string, any>;
+  @Column({ type: "json", nullable: true, name: "additional_data" })
+  additionalData?: Record<string, any>;
 }
 
 export default Transaction;

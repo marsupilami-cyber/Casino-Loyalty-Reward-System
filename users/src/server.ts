@@ -8,6 +8,7 @@ import * as swaggerUI from "swagger-ui-express";
 
 import { config } from "./config/config";
 import { connectDatabase } from "./config/db";
+import { startGrpcServer } from "./config/grpc";
 import { connectKafka } from "./config/kafka";
 import { logger } from "./config/logger";
 import { swaggerSpecV1 } from "./config/swagger";
@@ -35,6 +36,7 @@ const startServer = async () => {
 
   try {
     await Promise.all([connectDatabase(), connectRedis(), connectKafka()]);
+    await startGrpcServer();
   } catch (error) {
     logger.error(error);
     process.exit(1);
