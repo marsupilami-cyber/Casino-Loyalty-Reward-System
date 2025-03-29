@@ -35,6 +35,7 @@ const startServer = async () => {
   try {
     await Promise.all([connectDatabase(), connectKafka()]);
     await assignPromotionConsumer();
+    waitForGrpcClient();
   } catch (error) {
     logger.error(error);
     process.exit(1);

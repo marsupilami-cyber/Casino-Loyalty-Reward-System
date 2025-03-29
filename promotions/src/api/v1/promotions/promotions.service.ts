@@ -7,6 +7,8 @@ import Promotion from "./models/promotions.model";
 import { In, LessThanOrEqual, MoreThanOrEqual, Repository } from "typeorm";
 
 import { AppDataSource } from "../../../config/db";
+import { grpcClient } from "../../../config/grpc";
+import { TransactionRequest } from "../../../protogen/transaction/TransactionRequest";
 import { PromotionType, uniquePromotionTypes } from "../../../utility/types";
 import { sendNotificationProducer } from "./kafka/sendNotification";
 
@@ -91,7 +93,11 @@ export class PromotionService {
     }
   }
 
-  claimPromotion = async (claimDto: ClaimPromotionDto) => {
+  async claimPromotion(claimDto: ClaimPromotionDto) {
+    const queryRunner = AppDataSource.createQueryRunner();
+
+    await queryRunner.startTransaction();
+
     try {
       const { userId, promotionId } = claimDto;
 
@@ -121,15 +127,39 @@ export class PromotionService {
       }
 
       playerPromotion.claimed = true;
-      await this.playerPromotionRepo.save(playerPromotion);
+      await queryRunner.manager.save(playerPromotion);
+
+      const transactionData: TransactionRequest = {
+        userId,
+        amount: promotion.amount,
+        transactionType: "CREDIT",
+        description: `Claimed '${promotion.title}' promotion of type '${promotion.type}'`,
+        additionalData: JSON.stringify({ promotion }),
+      };
+
+      await new Promise((resolve, reject) => {
+        grpcClient.addTransaction(transactionData, (error, response) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(response);
+          }
+        });
+      });
+
+      await queryRunner.commitTransaction();
 
       return { message: "Promotion successfully claimed" };
     } catch (error) {
+      await queryRunner.rollbackTransaction();
+
       if (error instanceof Error) {
         throw new Error(error.message);
       }
+    } finally {
+      await queryRunner.release();
     }
-  };
+  }
 
   async assignPromotion(promotionId: string, playerIds: string[]) {
     try {

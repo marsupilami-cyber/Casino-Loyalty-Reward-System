@@ -17,7 +17,8 @@ export interface ExtendedRequest extends Request {
 }
 
 export enum PromotionType {
-  PLAYER_REGISTERED = "PLAYER_REGISTERED",
+  WELCOME_BONUS = "WELCOME_BONUS",
   VIP = "VIP_PROMOTION",
   BONUS = "BONUS",
 }
+export const uniquePromotionTypes: PromotionType[] = [PromotionType.WELCOME_BONUS];

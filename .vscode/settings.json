@@ -1,0 +1,11 @@
+{
+    "protoc": {
+        "path": "/opt/homebrew/bin/protoc",
+        "options": [
+            "--proto_path=users/src/api/v1/transactions/proto",
+            "--ts_out=gen/ts",
+            "--grpc_out=gen/ts",
+            "--plugin=protoc-gen-grpc=$(which grpc_tools_node_protoc_plugin)"
+        ]
+    }
+}

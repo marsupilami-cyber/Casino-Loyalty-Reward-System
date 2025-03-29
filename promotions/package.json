@@ -6,15 +6,19 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "node --watch -r ts-node/register src/server.ts",
+    "debug": "node --watch --inspect=0.0.0.0:9229 -r ts-node/register src/server.ts",
     "build": "tsc",
     "format": "prettier --write .",
     "lint": "eslint . ",
-    "lint:fix": "eslint . --fix "
+    "lint:fix": "eslint . --fix ",
+    "proto:build": "npx proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=src/protogen/ src/proto/*.proto"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@grpc/grpc-js": "^1.13.2",
+    "@grpc/proto-loader": "^0.7.13",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
