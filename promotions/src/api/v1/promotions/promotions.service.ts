@@ -1,7 +1,7 @@
 import { ClaimPromotionDto } from "./dto/claimedPromotion.dto";
 import { CreatePromotionDto } from "./dto/createPromotions.dto";
 import { GetPromotionsDto } from "./dto/getPromotions.dto";
-import PlayerPromotion from "./models/player_promotions.model";
+import PlayerPromotion from "./models/playerPromotions.model";
 import Promotion from "./models/promotions.model";
 
 import { In, LessThanOrEqual, MoreThanOrEqual, Repository } from "typeorm";

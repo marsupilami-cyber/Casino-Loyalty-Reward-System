@@ -1,4 +1,4 @@
-import PlayerPromotion from "./player_promotions.model";
+import PlayerPromotion from "./playerPromotions.model";
 
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 

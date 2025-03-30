@@ -9,6 +9,9 @@ import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import express from "express";
 
+import authorizeNotPlayer from "../../../middlewares/authorizeNotPlayer";
+import { ExtendedRequest, RolesEnum } from "../../../utility/types";
+
 const router = express.Router();
 
 const promotionService = new PromotionService();
@@ -35,7 +38,7 @@ const promotionService = new PromotionService();
  *       '400':
  *         description: Validation error.
  */
-router.post("/", async (req, res, next) => {
+router.post("/", authorizeNotPlayer, async (req, res, next) => {
   const createPromotionDto = plainToInstance(CreatePromotionDto, req.body);
 
   const errors = await validate(createPromotionDto);
@@ -130,7 +133,7 @@ router.post("/", async (req, res, next) => {
  *               items:
  *                 $ref: '#/components/schemas/PromotionOutputDto'
  */
-router.get("/", async (req, res, next) => {
+router.get("/", async (req: ExtendedRequest, res, next) => {
   const getPromotionsDto = plainToInstance(GetPromotionsDto, req.query);
 
   const errors = await validate(getPromotionsDto);
@@ -140,6 +143,9 @@ router.get("/", async (req, res, next) => {
       message: errors.map(({ constraints }) => constraints!),
     });
     return;
+  }
+  if (req.role === RolesEnum.PLAYER) {
+    getPromotionsDto.userId = req.userId;
   }
 
   try {
@@ -221,7 +227,7 @@ router.post("/claim", async (req, res, next) => {
  *       '201':
  *         description: Promotion successfully assigned to users.
  */
-router.post("/:promotion_id/assign", async (req, res, next) => {
+router.post("/:promotion_id/assign", authorizeNotPlayer, async (req, res, next) => {
   const promotionId = req.params.promotion_id;
 
   const assignPromotionDto = plainToInstance(AssignPromotionDto, req.body);

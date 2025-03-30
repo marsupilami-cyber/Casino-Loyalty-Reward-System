@@ -1,4 +1,4 @@
-import PlayerPromotion from "../api/v1/promotions/models/player_promotions.model";
+import PlayerPromotion from "../api/v1/promotions/models/playerPromotions.model";
 import Promotion from "../api/v1/promotions/models/promotions.model";
 
 import "reflect-metadata";
