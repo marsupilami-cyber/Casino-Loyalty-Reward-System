@@ -77,8 +77,8 @@ services:
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_KRAFT_CLUSTER_ID: GmOIfiOoQza2i1O3XPAyTA
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-    expose:
-      - "9092"
+    ports:
+      - "9092:9092"
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --list || exit 1"]
       interval: 10s
@@ -149,6 +149,26 @@ services:
       - ./promotions:/app
     networks:
       - casino
+
+  notifications:
+    build: ./notifications
+    ports:
+      - "3002:3002"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      ACCESS_TOKEN_SECRET: 1be33b7da257ee02d36a5d690496d9f3021dcc8555b05702555fbc90e1ecbf33b03c908bb633630b80507efba23ba018bba4a0e3328da48aad3561c5f11352f9
+      REFRESH_TOKEN_SECRET: e839582f1f279d067f899565d4626ec243ba323ea138c4e283fe5bebb828b9d3e9d87a6b8b3cadab2648bb0e846a1117cf9b9f0b34ff26e42bb5474dd7f714b8
+      KAFKA_BROKER: kafka:9092
+      KAFKAJS_NO_PARTITIONER_WARNING: 1
+    restart: unless-stopped
+    volumes:
+      - ./notifications:/app
+    networks:
+      - casino  
 
 volumes:
   users-data:
