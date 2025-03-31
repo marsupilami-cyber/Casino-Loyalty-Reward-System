@@ -7,6 +7,11 @@ export enum KafkaTopic {
   Notification = "notification",
 }
 
+export enum KafkaNotificationsEvent {
+  Promotions = "PROMOTIONS",
+  Alert = "ALERT",
+}
+
 const kafka = new Kafka({
   clientId: "notifications-service",
   brokers: [config.kafkaBroker],

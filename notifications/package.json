@@ -10,25 +10,22 @@
     "lint:fix": "eslint . --fix "
   },
   "dependencies": {
-    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "@types/jsonwebtoken": "^9.0.9",
-    "cookie-parser": "^1.4.7",
-    "express": "^4.21.2",
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
+    "mongoose": "^8.13.1",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
-    "reflect-metadata": "^0.2.2",
-    "typeorm": "^0.3.21"
+    "ws": "^8.18.1"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.10",
     "@types/pino": "^7.0.5",
+    "@types/ws": "^8.18.0",
     "eslint": "^9.22.0",
     "prettier": "^3.5.3",
-    "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }
