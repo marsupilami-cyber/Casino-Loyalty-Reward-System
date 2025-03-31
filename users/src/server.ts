@@ -2,6 +2,7 @@ import { connectRedis } from "./config/redis.config";
 
 import cookieParser from "cookie-parser";
 import express from "express";
+import helmet from "helmet";
 import { Server } from "http";
 import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
 import * as swaggerUI from "swagger-ui-express";
@@ -19,6 +20,11 @@ let server: Server;
 
 const startServer = async () => {
   const app = express();
+
+  app.use(helmet());
+  app.disable("x-powered-by");
+  app.set("trust proxy", true);
+
   app.use(express.json());
   app.use(cookieParser());
 

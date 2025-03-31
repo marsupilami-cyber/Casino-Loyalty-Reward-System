@@ -1,13 +1,15 @@
 import Promotion from "../models/promotions.model";
 
-import { KafkaTopic, producer } from "../../../../config/kafka";
+import { KafkaNotificationsEvent, KafkaTopic, producer } from "../../../../config/kafka";
 import { logger } from "../../../../config/logger";
 
 export const sendNotificationProducer = async (userId: string, promotion: Promotion) => {
   const topic = KafkaTopic.Notification;
   const eventData = {
     user_id: userId,
-    promotion,
+    content: promotion,
+    event_type: KafkaNotificationsEvent.Promotions,
+    acks: -1,
   };
   try {
     await producer.send({

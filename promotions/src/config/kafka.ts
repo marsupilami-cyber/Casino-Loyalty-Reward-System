@@ -7,6 +7,10 @@ export enum KafkaPlayerEvent {
   PlayerRegistered = "PLAYER_REGISTERED",
 }
 
+export enum KafkaNotificationsEvent {
+  Promotions = "PROMOTIONS",
+}
+
 export enum KafkaTopic {
   Player = "player",
   Notification = "notification",

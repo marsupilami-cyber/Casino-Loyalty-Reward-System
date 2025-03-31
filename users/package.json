@@ -1,5 +1,5 @@
 {
-  "name": "casino",
+  "name": "users-service",
   "version": "1.0.0",
   "scripts": {
     "start": "node dist/server.js",
@@ -23,6 +23,7 @@
     "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",
+    "helmet": "^8.1.0",
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",

@@ -13,7 +13,6 @@ export const config = {
   dbName: process.env.DB_NAME || "test",
 
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET as string,
-  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET as string,
 
   kafkaBroker: process.env.KAFKA_BROKER || "localhost:9092",
 };
