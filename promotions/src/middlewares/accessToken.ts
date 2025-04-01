@@ -2,14 +2,14 @@ import { Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 
 import { config } from "../config/config";
+import { AppError, AppErrorCode } from "../utility/appError";
 import { ExtendedRequest } from "../utility/types";
 
 const accessTokenMiddleware = (req: ExtendedRequest, res: Response, next: NextFunction) => {
   const accessToken = req.get("authorization")?.split(" ")[1];
 
   if (!accessToken) {
-    res.status(401).json({ message: "No access token provided" });
-    return;
+    throw new AppError(AppErrorCode.TokenNotProvided);
   }
 
   try {
@@ -20,7 +20,7 @@ const accessTokenMiddleware = (req: ExtendedRequest, res: Response, next: NextFu
 
     next();
   } catch (error) {
-    res.status(401).json({ message: "Invalid access token" });
+    throw new AppError(AppErrorCode.TokenInvalid);
   }
 };
 

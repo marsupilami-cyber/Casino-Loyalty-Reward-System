@@ -10,6 +10,7 @@ import { Repository } from "typeorm";
 import { config } from "../../../config/config";
 import { AppDataSource } from "../../../config/db";
 import { KafkaEvent, KafkaTopic, producer } from "../../../config/kafka";
+import { AppError, AppErrorCode } from "../../../utility/appError";
 import { generateToken } from "../../../utility/generateToken";
 import { RolesEnum } from "../../../utility/types";
 
@@ -33,7 +34,7 @@ export class AuthService {
   async register(userDto: RegisterInputDto, role: RolesEnum) {
     const exists = await this.userRepo.existsBy({ email: userDto.email });
     if (exists) {
-      throw new Error("User already registered");
+      throw new AppError(AppErrorCode.UserExists);
     }
 
     const hashedPassword = await bcrypt.hash(userDto.password, 12);
@@ -66,12 +67,12 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error("User is not found");
+      throw new AppError(AppErrorCode.NotFound, "User is not found");
     }
 
     const valid = await bcrypt.compare(loginDto.password, user.password);
     if (!valid) {
-      throw new Error("Password is wrong");
+      throw new AppError(AppErrorCode.InvalidCredentials);
     }
 
     const accessToken = generateToken(user, "access");
@@ -103,14 +104,14 @@ export class AuthService {
       const refreshKey = getRefreshTokenKey(userId);
       await this.redisService.sRem(refreshKey, token);
 
-      const user = await this.userRepo.findOne({
+      const user = await this.userRepo.findOneOrFail({
         where: { id: userId },
         select: { id: true, role: true, active: true },
       });
 
-      const accessToken = generateToken(user!, "access");
+      const accessToken = generateToken(user, "access");
 
-      const refreshToken = generateToken(user!, "refresh");
+      const refreshToken = generateToken(user, "refresh");
 
       await this.redisService.sAdd(refreshKey, refreshToken);
 

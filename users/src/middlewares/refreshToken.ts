@@ -5,14 +5,14 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 
 import { config } from "../config/config";
 import { logger } from "../config/logger";
+import { AppError, AppErrorCode } from "../utility/appError";
 import { ExtendedRequest } from "../utility/types";
 
 const refreshTokenMiddleware = async (req: ExtendedRequest, res: Response, next: NextFunction) => {
   const refreshToken = req.cookies?.["refreshToken"];
   logger.info(refreshToken);
   if (!refreshToken) {
-    res.status(401).json({ message: "No refresh token provided" });
-    return;
+    throw new AppError(AppErrorCode.TokenNotProvided, "No refresh token provided");
   }
 
   try {
@@ -22,8 +22,7 @@ const refreshTokenMiddleware = async (req: ExtendedRequest, res: Response, next:
 
     const exists = await redisClient.sIsMember(refreshKey, refreshToken);
     if (!exists) {
-      res.status(401).json({ message: "Refresh token is not valid" });
-      return;
+      throw new AppError(AppErrorCode.TokenInvalid, "Refresh token is not valid");
     }
 
     req.userId = userId;
@@ -33,7 +32,7 @@ const refreshTokenMiddleware = async (req: ExtendedRequest, res: Response, next:
     next();
   } catch (error) {
     logger.error(error);
-    res.status(401).json({ message: "Invalid refresh token" });
+    throw new AppError(AppErrorCode.TokenInvalid, "Refresh token is not valid");
   }
 };
 

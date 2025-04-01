@@ -8,8 +8,7 @@ import { setupWebSocket } from "./websocket/websocket";
 
 const startServer = async () => {
   try {
-    await connectKafka();
-    await connectMongoose();
+    await Promise.all([connectMongoose(), connectKafka()]);
 
     await consumeNotifications();
 
@@ -18,8 +17,8 @@ const startServer = async () => {
     const PORT = config.port;
     logger.info(`WebSocket server running on port ${PORT}`);
 
-    process.on("SIGINT", () => gracefulShutdown(wss));
-    process.on("SIGTERM", () => gracefulShutdown(wss));
+    process.on("SIGINT", async () => await gracefulShutdown(wss));
+    process.on("SIGTERM", async () => await gracefulShutdown(wss));
   } catch (error) {
     logger.error("Error starting server:", error);
     process.exit(1);

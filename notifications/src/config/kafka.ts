@@ -18,12 +18,13 @@ const kafka = new Kafka({
   logLevel: 2,
 });
 
-export const consumer = kafka.consumer({ groupId: "notifications-group" });
+export const consumer = kafka.consumer({
+  groupId: "notifications-group",
+  sessionTimeout: 30000,
+  heartbeatInterval: 5000,
+});
 
 export const connectKafka = async () => {
-  consumer.on("consumer.connect", () => {
-    logger.info("Kafka consumer connected successfully");
-  });
-
   await consumer.connect();
+  logger.info("Kafka consumer connected successfully");
 };

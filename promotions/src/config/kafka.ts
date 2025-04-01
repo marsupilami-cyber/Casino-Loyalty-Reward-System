@@ -27,17 +27,16 @@ const kafka = new Kafka({
 });
 
 export const producer = kafka.producer();
-export const consumer = kafka.consumer({ groupId: "promotions-group" });
+export const consumer = kafka.consumer({
+  groupId: "promotions-group",
+  sessionTimeout: 30000,
+  heartbeatInterval: 5000,
+});
 
 export const connectKafka = async () => {
-  producer.on("producer.connect", () => {
-    logger.info("Kafka producer connected successfully");
-  });
-
-  consumer.on("consumer.connect", () => {
-    logger.info("Kafka consumer connected successfully");
-  });
-
   await consumer.connect();
+  logger.info("Kafka consumer connected successfully");
+
   await producer.connect();
+  logger.info("Kafka producer connected successfully");
 };

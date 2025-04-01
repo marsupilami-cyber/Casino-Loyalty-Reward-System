@@ -7,16 +7,20 @@ import { Server } from "http";
 import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
 import * as swaggerUI from "swagger-ui-express";
 
+import { Server as GrpcServer } from "@grpc/grpc-js";
+
 import { config } from "./config/config";
 import { connectDatabase } from "./config/db";
 import { startGrpcServer } from "./config/grpc";
 import { connectKafka } from "./config/kafka";
 import { logger } from "./config/logger";
 import { swaggerSpecV1 } from "./config/swagger";
+import { errorHandler } from "./middlewares/errorHandler";
 import routes from "./routes";
 import { gracefulShutdown } from "./utility/graceful-shutdown";
 
 let server: Server;
+let grpcServer: GrpcServer;
 
 const startServer = async () => {
   const app = express();
@@ -39,13 +43,14 @@ const startServer = async () => {
     }),
   );
   app.use("/", routes);
+  app.use(errorHandler);
 
   try {
     await Promise.all([connectDatabase(), connectRedis(), connectKafka()]);
-    await startGrpcServer();
+    grpcServer = await startGrpcServer();
   } catch (error) {
     logger.error(error);
-    process.exit(1);
+    gracefulShutdown(server, grpcServer);
   }
   try {
     const PORT = config.port;
@@ -54,11 +59,11 @@ const startServer = async () => {
     });
   } catch (error) {
     logger.error("Error starting server:", error);
-    process.exit(1);
+    gracefulShutdown(server, grpcServer);
   }
 };
 
-process.on("SIGINT", () => gracefulShutdown(server));
-process.on("SIGTERM", () => gracefulShutdown(server));
+process.on("SIGINT", () => gracefulShutdown(server, grpcServer));
+process.on("SIGTERM", () => gracefulShutdown(server, grpcServer));
 
 startServer();

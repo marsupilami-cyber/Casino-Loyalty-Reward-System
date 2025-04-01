@@ -17,7 +17,64 @@ const createSwaggerSpec = (version: string, description: string, apiPath: string
           bearerFormat: "JWT",
         },
       },
+      schemas: {
+        ApiResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: "success" },
+            message: { type: "string" },
+            data: { type: "object" },
+          },
+        },
+        ApiResponseWithMeta: {
+          type: "object",
+          properties: {
+            success: { type: "boolean" },
+            message: { type: "string", example: "success" },
+            data: { type: "object" },
+            meta: {
+              type: "object",
+              properties: {
+                page: { type: "integer" },
+                limit: { type: "integer" },
+                total: { type: "integer" },
+              },
+            },
+          },
+        },
+        ApiError: {
+          description: "Standard API Error Response",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  error: {
+                    type: "object",
+                    properties: {
+                      code: { oneOf: [{ type: "string" }, { type: "number" }] },
+                      details: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            field: { type: "string" },
+                            message: { type: "string" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
+    security: [{ BearerAuth: [] }],
     servers: [
       {
         url: "http://localhost:3001",

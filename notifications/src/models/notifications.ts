@@ -1,12 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-// Enum za tipove notifikacija
 export enum NotificationType {
-  PROMOTION = "promotion",
-  MESSAGE = "message",
-  SYSTEM = "system",
-  ALERT = "alert",
-  OTHER = "other",
+  Promotion = "promotion",
+  Others = "others",
 }
 
 export interface NotificationItem {

@@ -1,16 +1,17 @@
 import { AssignPromotionDto } from "./dto/assignPromotion.dto";
-import { ClaimPromotionDto } from "./dto/claimedPromotion.dto";
+import { ClaimPromotionDto } from "./dto/claimPromotion.dto";
 import { CreatePromotionDto } from "./dto/createPromotions.dto";
-import { GetPromotionsDto } from "./dto/getPromotions.dto";
-import { PromotionOutputDto } from "./dto/promotions.dto";
+import { GetPromotionsDto, PlayerPromotionOutput, PromotionOutputDto } from "./dto/getPromotions.dto";
 import { PromotionService } from "./promotions.service";
 
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import express from "express";
+import { StatusCodes } from "http-status-codes";
 
-import authorizeNotPlayer from "../../../middlewares/authorizeNotPlayer";
-import { ExtendedRequest, RolesEnum } from "../../../utility/types";
+import authorizeStaff from "../../../middlewares/authorizeStaff";
+import { AppValidationError } from "../../../utility/appError";
+import { ApiResponse, ExtendedRequest, RolesEnum } from "../../../utility/types";
 
 const router = express.Router();
 
@@ -30,24 +31,25 @@ const promotionService = new PromotionService();
  *             $ref: "#/components/schemas/CreatePromotionDto"
  *     responses:
  *       '201':
- *         description: Promotion created successfuly
+ *         description: Promotion created successfully.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PromotionOutputDto'
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponse"
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: "#/components/schemas/PromotionOutputDto"
  *       '400':
  *         description: Validation error.
  */
-router.post("/", authorizeNotPlayer, async (req, res, next) => {
+router.post("/", authorizeStaff, async (req, res, next) => {
   const createPromotionDto = plainToInstance(CreatePromotionDto, req.body);
 
   const errors = await validate(createPromotionDto);
   if (errors.length > 0) {
-    res.status(400).json({
-      success: false,
-      message: errors.map(({ constraints }) => constraints!),
-    });
-    return;
+    throw new AppValidationError(errors.map(({ constraints }) => constraints!));
   }
 
   try {
@@ -58,11 +60,12 @@ router.post("/", authorizeNotPlayer, async (req, res, next) => {
       enableImplicitConversion: true,
     });
 
-    res.status(201).json({
+    const response: ApiResponse<PromotionOutputDto> = {
+      message: "Promotion created successfully",
       success: true,
       data,
-      message: "Promotion created successfully",
-    });
+    };
+    res.status(StatusCodes.CREATED).json(response);
   } catch (error) {
     next(error);
   }
@@ -75,85 +78,119 @@ router.post("/", authorizeNotPlayer, async (req, res, next) => {
  *     summary: Get promotions with filtering
  *     tags: [Promotions]
  *     parameters:
- *       - in: query
- *         name: userId
- *         required: false
- *         schema:
- *           type: string
- *           format: uuid
- *       - in: query
- *         name: promotionId
- *         required: false
- *         schema:
- *           type: string
- *           format: uuid
- *       - in: query
- *         name: isActive
- *         required: false
- *         schema:
- *           type: boolean
- *       - in: query
- *         name: startDate
- *         required: false
- *         schema:
- *           type: string
- *           format: date-time
- *           example: 2025-04-27
- *       - in: query
- *         name: endDate
- *         required: false
- *         schema:
- *           type: string
- *           format: date-time
- *           example: 2025-10-27
- *       - in: query
- *         name: type
- *         required: false
- *         schema:
- *           type: string
- *       - in: query
- *         name: limit
- *         required: false
- *         schema:
- *           type: integer
- *           minimum: 1
- *       - in: query
- *         name: offset
- *         required: false
- *         schema:
- *           type: integer
- *           minimum: 0
+ *       - $ref: '#/components/parameters/PromotionIdParam'
+ *       - $ref: '#/components/parameters/IsActiveParam'
+ *       - $ref: '#/components/parameters/StartDateParam'
+ *       - $ref: '#/components/parameters/EndDateParam'
+ *       - $ref: '#/components/parameters/TypeParam'
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
  *     responses:
  *       '200':
  *         description: List of promotions
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PromotionOutputDto'
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponseWithMeta"
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: "#/components/schemas/PromotionOutputDto"
  */
-router.get("/", async (req: ExtendedRequest, res, next) => {
+router.get("/", authorizeStaff, async (req: ExtendedRequest, res, next) => {
   const getPromotionsDto = plainToInstance(GetPromotionsDto, req.query);
 
   const errors = await validate(getPromotionsDto);
   if (errors.length > 0) {
-    res.status(400).json({
-      success: false,
-      message: errors.map(({ constraints }) => constraints!),
-    });
-    return;
-  }
-  if (req.role === RolesEnum.PLAYER) {
-    getPromotionsDto.userId = req.userId;
+    throw new AppValidationError(errors.map(({ constraints }) => constraints!));
   }
 
   try {
-    const promotions = await promotionService.getPromotions(getPromotionsDto);
-    res.status(200).json({
+    const data = await promotionService.getPromotions(getPromotionsDto);
+
+    const promotionsDto = plainToInstance(PromotionOutputDto, data.promotions, { excludeExtraneousValues: true });
+
+    const response: ApiResponse<PromotionOutputDto[]> = {
+      message: "Get all promotions",
       success: true,
-      data: promotions,
+      data: promotionsDto,
+      meta: {
+        limit: getPromotionsDto.limit,
+        page: getPromotionsDto.page,
+        total: data.total,
+      },
+    };
+
+    res.status(StatusCodes.OK).json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/promotions/players/{player_id}:
+ *   get:
+ *     summary: Get player promotions with filtering
+ *     tags: [Promotions]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: player_id
+ *         required: true
+ *         description: The ID of the player
+ *         schema:
+ *          type: string
+ *          format: uuid
+ *       - $ref: '#/components/parameters/PromotionIdParam'
+ *       - $ref: '#/components/parameters/IsActiveParam'
+ *       - $ref: '#/components/parameters/StartDateParam'
+ *       - $ref: '#/components/parameters/EndDateParam'
+ *       - $ref: '#/components/parameters/TypeParam'
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *     responses:
+ *       '200':
+ *         description: List of player promotions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponseWithMeta"
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: "#/components/schemas/PlayerPromotionOutputDto"
+ */
+router.get("/players/:player_id", async (req: ExtendedRequest, res, next) => {
+  const playerId = req.role === RolesEnum.PLAYER ? req.userId! : req.params.player_id;
+
+  const getPromotionsDto = plainToInstance(GetPromotionsDto, req.query);
+
+  try {
+    const data = await promotionService.getPlayerPromotions(playerId, getPromotionsDto);
+    const promotionsDto = plainToInstance(PlayerPromotionOutput, data.promotions, {
+      excludeExtraneousValues: true,
     });
+
+    const response: ApiResponse<PlayerPromotionOutput[]> = {
+      message: "Get all promotions of player",
+      success: true,
+      data: promotionsDto,
+      meta: {
+        limit: getPromotionsDto.limit,
+        page: getPromotionsDto.page,
+        total: data.total,
+      },
+    };
+
+    res.status(StatusCodes.OK).json(response);
   } catch (error) {
     next(error);
   }
@@ -172,31 +209,34 @@ router.get("/", async (req: ExtendedRequest, res, next) => {
  *           schema:
  *             $ref: '#/components/schemas/ClaimPromotionDto'
  *     responses:
- *       '200':
+ *       '201':
  *         description: Promotion claimed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponse"
  *       '400':
  *         description: Promotion already claimed or validation error.
- *       '404':
- *         description: Promotion not found or user not eligible.
  */
-router.post("/claim", async (req, res, next) => {
+router.post("/claim", async (req: ExtendedRequest, res, next) => {
   const claimPromotionDto = plainToInstance(ClaimPromotionDto, req.body);
 
   const errors = await validate(claimPromotionDto);
   if (errors.length > 0) {
-    res.status(400).json({
-      success: false,
-      message: errors.map(({ constraints }) => constraints!),
-    });
-    return;
+    throw new AppValidationError(errors.map(({ constraints }) => constraints!));
   }
+  const accessToken = req.get("authorization");
 
   try {
-    await promotionService.claimPromotion(claimPromotionDto);
-    res.status(200).json({
-      success: true,
+    await promotionService.claimPromotion(req.userId!, claimPromotionDto.promotionId, accessToken!);
+
+    const response: ApiResponse = {
       message: "Promotion claimed successfully",
-    });
+      success: true,
+    };
+
+    res.status(StatusCodes.CREATED).json(response);
   } catch (error) {
     next(error);
   }
@@ -226,28 +266,31 @@ router.post("/claim", async (req, res, next) => {
  *     responses:
  *       '201':
  *         description: Promotion successfully assigned to users.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponse"
  */
-router.post("/:promotion_id/assign", authorizeNotPlayer, async (req, res, next) => {
+router.post("/:promotion_id/assign", authorizeStaff, async (req, res, next) => {
   const promotionId = req.params.promotion_id;
 
   const assignPromotionDto = plainToInstance(AssignPromotionDto, req.body);
 
   const errors = await validate(assignPromotionDto);
   if (errors.length > 0) {
-    res.status(400).json({
-      success: false,
-      message: errors.map(({ constraints }) => constraints!),
-    });
-    return;
+    throw new AppValidationError(errors.map(({ constraints }) => constraints!));
   }
 
   try {
     await promotionService.assignPromotion(promotionId, assignPromotionDto.userIds);
 
-    res.status(201).json({
-      success: true,
+    const response: ApiResponse = {
       message: "Promotion assigned successfully",
-    });
+      success: true,
+    };
+
+    res.status(StatusCodes.CREATED).json(response);
   } catch (error) {
     next(error);
   }

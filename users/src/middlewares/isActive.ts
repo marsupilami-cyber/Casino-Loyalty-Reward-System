@@ -1,11 +1,11 @@
 import { Response, NextFunction } from "express";
 
+import { AppError, AppErrorCode } from "../utility/appError";
 import { ExtendedRequest } from "../utility/types";
 
 const isActive = (req: ExtendedRequest, res: Response, next: NextFunction) => {
   if (!req.active) {
-    res.status(403).json({ message: "Access denied. User is deactivated." });
-    return;
+    throw new AppError(AppErrorCode.AccountDeactivated);
   }
 
   next();

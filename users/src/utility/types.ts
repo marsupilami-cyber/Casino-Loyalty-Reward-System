@@ -21,3 +21,24 @@ export interface ExtendedRequest extends Request {
   role?: string;
   active?: boolean;
 }
+
+export interface ApiResponse<T = undefined> {
+  success: boolean;
+  message: string;
+  data?: T;
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    [key: string]: any;
+  };
+}
+
+export interface ApiError {
+  success: boolean;
+  message: string;
+  error: {
+    code: string;
+    details?: Record<string, string>[];
+  };
+}

@@ -1,20 +1,24 @@
-import Notification from "../models/notifications";
+import Notification, { NotificationItem } from "../models/notifications";
 
-export const saveNotificationToDB = async (userId: string, content: any, eventType: string, read = false) => {
+export const saveNotificationToDB = async (userId: string, notification: NotificationItem) => {
   try {
-    const notification = new Notification({
-      user_id: userId,
-      notifications: [
-        {
-          type: eventType,
-          content: content,
-          read,
-        },
-      ],
-    });
+    const notificationDoc = await Notification.findOne({ user_id: userId });
 
-    await notification.save();
+    if (notificationDoc) {
+      notificationDoc.notifications.push(notification);
+
+      await notificationDoc.save();
+    } else {
+      const newNotification = new Notification({
+        user_id: userId,
+        notifications: [notification],
+      });
+
+      await newNotification.save();
+    }
   } catch (error) {
-    throw new Error("Failed to save notification to DB");
+    if (error instanceof Error) {
+      throw new Error("Failed to save notification to DB: " + error.message);
+    }
   }
 };

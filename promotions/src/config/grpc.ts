@@ -16,24 +16,28 @@ export const grpcClient = new transactionPackage.transaction.TransactionService(
   grpc.credentials.createInsecure(),
 );
 
-export const waitForGrpcClient = (retries: number = 3) => {
+export const waitForGrpcClient = (retries = 3): Promise<void> => {
   let attempts = 0;
 
-  const tryConnect = () => {
-    grpcClient.waitForReady(Date.now() + 5000, (error) => {
-      if (error) {
-        if (attempts < retries) {
-          attempts++;
-          logger.warn(`gRPC client not ready, retrying attempt ${attempts}...`);
-          setTimeout(tryConnect, 5000);
+  return new Promise((resolve, reject) => {
+    const tryConnect = () => {
+      grpcClient.waitForReady(Date.now() + 5000, (error) => {
+        if (error) {
+          if (attempts < retries) {
+            attempts++;
+            logger.warn(`gRPC client not ready, retrying attempt ${attempts}...`);
+            setTimeout(tryConnect, 5000);
+          } else {
+            logger.error("gRPC client failed to connect after 3 attempts:", error);
+            reject(error);
+          }
         } else {
-          logger.error("gRPC client failed to connect after 3 attempts:", error);
+          logger.info("gRPC client is ready");
+          resolve();
         }
-      } else {
-        logger.info("gRPC client is ready");
-      }
-    });
-  };
+      });
+    };
 
-  tryConnect();
+    tryConnect();
+  });
 };

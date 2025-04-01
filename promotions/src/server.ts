@@ -13,6 +13,7 @@ import { waitForGrpcClient } from "./config/grpc";
 import { connectKafka } from "./config/kafka";
 import { logger } from "./config/logger";
 import { swaggerSpecV1 } from "./config/swagger";
+import { errorHandler } from "./middlewares/errorHandler";
 import { gracefulShutdown } from "./utility/graceful-shutdown";
 
 let server: Server;
@@ -37,14 +38,14 @@ const startServer = async () => {
     }),
   );
   app.use("/", routes);
+  app.use(errorHandler);
 
   try {
-    await Promise.all([connectDatabase(), connectKafka()]);
+    await Promise.all([connectDatabase(), connectKafka(), waitForGrpcClient()]);
     await assignPromotionConsumer();
-    waitForGrpcClient();
   } catch (error) {
     logger.error(error);
-    process.exit(1);
+    await gracefulShutdown(server);
   }
   try {
     const PORT = config.port;
@@ -53,11 +54,11 @@ const startServer = async () => {
     });
   } catch (error) {
     logger.error("Error starting server:", error);
-    process.exit(1);
+    await gracefulShutdown(server);
   }
 };
 
-process.on("SIGINT", () => gracefulShutdown(server));
-process.on("SIGTERM", () => gracefulShutdown(server));
+process.on("SIGINT", async () => await gracefulShutdown(server));
+process.on("SIGTERM", async () => await gracefulShutdown(server));
 
 startServer();

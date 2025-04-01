@@ -21,8 +21,10 @@ export const gracefulShutdown = async (wss: WebSocketServer) => {
     await consumer.disconnect();
     logger.info("Kafka consumer connection closed");
 
-    await mongoose.disconnect();
-    logger.info("MongoDB connection closed");
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+      logger.info("MongoDB connection closed");
+    }
 
     clearTimeout(shutdownTimeout);
     process.exit(0);

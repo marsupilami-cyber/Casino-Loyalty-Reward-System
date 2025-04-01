@@ -1,16 +1,19 @@
 import { AuthService } from "./auth.service";
 import { LoginInputDto, LoginOutputDto } from "./dto/login.dto";
+import { RefreshOutputDto } from "./dto/refresh.dto";
 import { RegisterInputDto, UserOutputDto } from "./dto/user.dto";
 
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import express from "express";
+import { StatusCodes } from "http-status-codes";
 
 import accessTokenMiddleware from "../../../middlewares/accessToken";
 import authorizeAdmin from "../../../middlewares/authorizeAdmin";
 import isActive from "../../../middlewares/isActive";
 import refreshTokenMiddleware from "../../../middlewares/refreshToken";
-import { ExtendedRequest, RolesEnum } from "../../../utility/types";
+import { AppValidationError } from "../../../utility/appError";
+import { ApiResponse, ExtendedRequest, RolesEnum } from "../../../utility/types";
 
 const authService = new AuthService();
 
@@ -29,24 +32,25 @@ const router = express.Router();
  *           schema:
  *             $ref: "#/components/schemas/RegisterInputDto"
  *     responses:
- *       '200':
- *         description: User registered successfully.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/UserOutputDto'
- *       '400':
- *         description: Validation error.
+ *      '201':
+ *        description: User registered successfully.
+ *        content:
+ *          application/json:
+ *            schema:
+ *              allOf:
+ *                - $ref: "#/components/schemas/ApiResponse"
+ *                - type: object
+ *                  properties:
+ *                    data:
+ *                      $ref: "#/components/schemas/UserOutputDto"
+ *      '400':
+ *        description: Validation error.
  */
 router.post("/register", async (req, res, next) => {
   const userDto = plainToInstance(RegisterInputDto, req.body);
   const errors = await validate(userDto);
   if (errors.length > 0) {
-    res.json({
-      success: false,
-      message: errors.map(({ constraints }) => constraints!),
-    });
-    return;
+    throw new AppValidationError(errors.map(({ constraints }) => constraints!));
   }
 
   try {
@@ -54,7 +58,13 @@ router.post("/register", async (req, res, next) => {
 
     const data = plainToInstance(UserOutputDto, user, { excludeExtraneousValues: true });
 
-    res.json({ data, message: "User registered" });
+    const response: ApiResponse<UserOutputDto> = {
+      message: "User registered",
+      success: true,
+      data,
+    };
+
+    res.status(StatusCodes.CREATED).json(response);
   } catch (error) {
     next(error);
   }
@@ -84,7 +94,12 @@ router.post("/register", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/LoginOutputDto'
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponse"
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: "#/components/schemas/LoginOutputDto"
  *       '400':
  *         description: Validation error.
  *       '401':
@@ -95,11 +110,7 @@ router.post("/login", async (req, res, next) => {
 
   const errors = await validate(loginDto);
   if (errors.length > 0) {
-    res.json({
-      success: false,
-      message: errors.map(({ constraints }) => constraints!),
-    });
-    return;
+    throw new AppValidationError(errors.map(({ constraints }) => constraints!));
   }
   try {
     const user = await authService.login(loginDto);
@@ -107,9 +118,17 @@ router.post("/login", async (req, res, next) => {
     const data = new LoginOutputDto();
     data.accessToken = user.accessToken;
 
-    res.cookie("refreshToken", user.refreshToken, { httpOnly: true, sameSite: "strict" }).json(data);
+    const response: ApiResponse<LoginOutputDto> = {
+      message: "User logged in",
+      success: true,
+      data,
+    };
+
+    res
+      .status(StatusCodes.OK)
+      .cookie("refreshToken", user.refreshToken, { httpOnly: true, sameSite: "strict" })
+      .json(response);
   } catch (error) {
-    // TODO: handle default error
     next(error);
   }
 });
@@ -129,12 +148,17 @@ router.post("/login", async (req, res, next) => {
  *           schema:
  *             $ref: "#/components/schemas/RegisterInputDto"
  *     responses:
- *       '200':
- *         description: User registered successfully.
+ *       '201':
+ *         description: Staff registered successfully.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/UserOutputDto'
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponse"
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: "#/components/schemas/UserOutputDto"
  *       '400':
  *         description: Validation error.
  */
@@ -142,12 +166,7 @@ router.post("/register-staff", accessTokenMiddleware, isActive, authorizeAdmin, 
   const userDto = plainToInstance(RegisterInputDto, req.body);
   const errors = await validate(userDto);
   if (errors.length > 0) {
-    res.json({
-      success: false,
-      message: errors.map(({ constraints }) => constraints!),
-    });
-
-    return;
+    throw new AppValidationError(errors.map(({ constraints }) => constraints!));
   }
 
   try {
@@ -158,7 +177,12 @@ router.post("/register-staff", accessTokenMiddleware, isActive, authorizeAdmin, 
       enableImplicitConversion: true,
     });
 
-    res.json({ data, message: "User registered" });
+    const response: ApiResponse<UserOutputDto> = {
+      message: "Staff registered",
+      success: true,
+      data,
+    };
+    res.status(StatusCodes.CREATED).json(response);
   } catch (error) {
     next(error);
   }
@@ -173,6 +197,11 @@ router.post("/register-staff", accessTokenMiddleware, isActive, authorizeAdmin, 
  *     responses:
  *       '200':
  *         description: User logged out successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponse"
  *       '401':
  *         description: Unauthorized.
  */
@@ -182,7 +211,12 @@ router.post("/logout", refreshTokenMiddleware, isActive, async (req: ExtendedReq
 
     await authService.logout(req.userId!, refreshToken);
 
-    res.json({ success: true, message: "User logged out" });
+    const response: ApiResponse = {
+      message: "User logged out",
+      success: true,
+    };
+
+    res.status(StatusCodes.OK).json(response);
   } catch (error) {
     next(error);
   }
@@ -195,8 +229,23 @@ router.post("/logout", refreshTokenMiddleware, isActive, async (req: ExtendedReq
  *     summary: User refresh token
  *     tags: [Auth]
  *     responses:
- *       '200':
- *         description: User refreshed successfully.
+ *       '201':
+ *         description: User refresh token regenerated.
+ *         headers:
+ *           Set-Cookie:
+ *             description: HttpOnly refresh token cookie
+ *             schema:
+ *               type: string
+ *               example: refreshToken=abc123; HttpOnly; Path=/; SameSite=Strict
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: "#/components/schemas/ApiResponse"
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: "#/components/schemas/RefreshOutputDto"
  *       '401':
  *         description: Unauthorized.
  */
@@ -206,7 +255,18 @@ router.post("/refresh", refreshTokenMiddleware, isActive, async (req: ExtendedRe
 
     const { accessToken, refreshToken } = await authService.refreshToken(req.userId!, token);
 
-    res.cookie("refreshToken", refreshToken, { httpOnly: true, sameSite: "strict" }).json({ accessToken });
+    const data = new RefreshOutputDto();
+    data.accessToken = accessToken;
+
+    const response: ApiResponse<RefreshOutputDto> = {
+      message: "User refresh token regenerated",
+      success: true,
+    };
+
+    res
+      .cookie("refreshToken", refreshToken, { httpOnly: true, sameSite: "strict" })
+      .status(StatusCodes.CREATED)
+      .json(response);
   } catch (error) {
     next(error);
   }

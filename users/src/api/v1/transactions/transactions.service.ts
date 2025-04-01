@@ -6,6 +6,8 @@ import { plainToInstance } from "class-transformer";
 import { Repository } from "typeorm";
 
 import { AppDataSource } from "../../../config/db";
+import { AppError, AppErrorCode } from "../../../utility/appError";
+import { TransactionTypesEnum } from "../../../utility/types";
 
 export class TransactionService {
   private userRepo: Repository<User>;
@@ -20,20 +22,22 @@ export class TransactionService {
     try {
       const user = await this.userRepo.findOneBy({ id: transactionDto.userId });
       if (!user) {
-        throw new Error("User is not found");
+        throw new AppError(AppErrorCode.NotFound, "User is not found");
       }
 
       const transaction = plainToInstance(Transaction, transactionDto);
       transaction.user = user;
 
       await this.transactionRepo.save(transaction);
-      if (transaction.transactionType === 0) {
+      if (transaction.transactionType === TransactionTypesEnum.CREDIT) {
         user.balance += transaction.amount;
       } else {
         user.balance -= transaction.amount;
       }
+
       await this.userRepo.save(user);
-      return { user_id: user.id, balance: user.balance };
+
+      return { userId: user.id, balance: user.balance };
     } catch (error) {
       throw error;
     }
