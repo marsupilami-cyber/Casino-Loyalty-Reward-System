@@ -4,13 +4,14 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import helmet from "helmet";
 import { Server } from "http";
+import "reflect-metadata";
 import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
 import * as swaggerUI from "swagger-ui-express";
 
 import { Server as GrpcServer } from "@grpc/grpc-js";
 
 import { config } from "./config/config";
-import { connectDatabase } from "./config/db";
+import { initDb } from "./config/db";
 import { startGrpcServer } from "./config/grpc";
 import { connectKafka } from "./config/kafka";
 import { logger } from "./config/logger";
@@ -46,7 +47,7 @@ const startServer = async () => {
   app.use(errorHandler);
 
   try {
-    await Promise.all([connectDatabase(), connectRedis(), connectKafka()]);
+    await Promise.all([initDb(), connectRedis(), connectKafka()]);
     grpcServer = await startGrpcServer();
   } catch (error) {
     logger.error(error);
@@ -54,7 +55,11 @@ const startServer = async () => {
   }
   try {
     const PORT = config.port;
-    server = app.listen(PORT, async () => {
+
+    server = app.listen(PORT, (error) => {
+      if (error) {
+        throw error;
+      }
       logger.info(`Server running on ${PORT}`);
     });
   } catch (error) {

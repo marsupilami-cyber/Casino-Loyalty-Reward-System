@@ -1,4 +1,4 @@
-import redisClient from "../config/redis.config";
+import { redisMasterClient, redisSlaveClient } from "../config/redis.config";
 
 import { Server } from "http";
 
@@ -35,8 +35,13 @@ export const gracefulShutdown = async (httpServer?: Server, grpcServer?: GrpcSer
       logger.info("Database connection closed");
     }
 
-    if (redisClient.isOpen) {
-      await redisClient.quit();
+    if (redisMasterClient.isOpen) {
+      await redisMasterClient.quit();
+      logger.info("Redis connection closed");
+    }
+
+    if (redisSlaveClient.isOpen) {
+      await redisSlaveClient.quit();
       logger.info("Redis connection closed");
     }
 

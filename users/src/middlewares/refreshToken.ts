@@ -1,4 +1,4 @@
-import redisClient, { getRefreshTokenKey } from "../config/redis.config";
+import { getRefreshTokenKey, redisSlaveClient } from "../config/redis.config";
 
 import { Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
@@ -20,7 +20,7 @@ const refreshTokenMiddleware = async (req: ExtendedRequest, res: Response, next:
 
     const refreshKey = getRefreshTokenKey(userId);
 
-    const exists = await redisClient.sIsMember(refreshKey, refreshToken);
+    const exists = await redisSlaveClient.sIsMember(refreshKey, refreshToken);
     if (!exists) {
       throw new AppError(AppErrorCode.TokenInvalid, "Refresh token is not valid");
     }

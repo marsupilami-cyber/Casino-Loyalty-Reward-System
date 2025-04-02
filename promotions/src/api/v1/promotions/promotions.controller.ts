@@ -40,7 +40,7 @@ const promotionService = new PromotionService();
  *                 - type: object
  *                   properties:
  *                     data:
- *                       $ref: "#/components/schemas/PromotionOutputDto"
+ *                       $ref: "#/components/schemas/BasePromotionDto"
  *       '400':
  *         description: Validation error.
  */

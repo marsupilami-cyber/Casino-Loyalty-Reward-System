@@ -1,4 +1,4 @@
-import redisClient, { getRefreshTokenKey } from "../../../config/redis.config";
+import { getRefreshTokenKey, redisMasterClient } from "../../../config/redis.config";
 import User from "../users/users.model";
 import { LoginInputDto } from "./dto/login.dto";
 import { RegisterInputDto } from "./dto/user.dto";
@@ -20,7 +20,7 @@ export class AuthService {
 
   constructor() {
     this.userRepo = AppDataSource.getRepository(User);
-    this.redisService = redisClient;
+    this.redisService = redisMasterClient;
   }
 
   getUserRepo() {

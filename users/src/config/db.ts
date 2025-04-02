@@ -1,7 +1,6 @@
 import Transaction from "../api/v1/transactions/transactions.model";
 import User from "../api/v1/users/users.model";
 
-import "reflect-metadata";
 import { DataSource } from "typeorm";
 
 import { NodeEnvEnum } from "../utility/types";
@@ -15,17 +14,20 @@ export const AppDataSource = new DataSource({
   username: config.dbUser,
   password: config.dbPassword,
   database: config.dbName,
-  synchronize: true,
+  synchronize: false,
   // logging: config.nodeEnv === NodeEnvEnum.DEVELOPMENT,
   entities: [User, Transaction],
-  migrations: [],
+  migrations: ["src/migrations/**/*.ts"],
   subscribers: [],
 });
 
-export const connectDatabase = async () => {
+export const initDb = async () => {
   try {
     await AppDataSource.initialize();
     logger.info("Database connected successfully");
+
+    await AppDataSource.runMigrations();
+    logger.info("Database migrations applied successfully");
   } catch (error) {
     if (error instanceof Error) {
       throw new Error("connect to database: " + error.message);

@@ -6,7 +6,7 @@ export const config = {
 
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET as string,
 
-  kafkaBroker: process.env.KAFKA_BROKER || "localhost:9092",
+  kafkaBrokers: process.env.KAFKA_BROKERS ? process.env.KAFKA_BROKERS.split(",") : ["localhost:9092"],
 
   mongoURI: process.env.MONGO_URI || "mongodb://mongo:27017/notifications",
   mongoDatabase: process.env.MONGO_DATABASE || "notifications",

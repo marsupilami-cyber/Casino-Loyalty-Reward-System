@@ -1,6 +1,6 @@
 services:
   users-postgres:
-    image: postgres:latest
+    image: postgres:17
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -17,31 +17,57 @@ services:
     networks:
       - casino
 
-  redis:
+  redis-master:
     image: redis:latest
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "--raw", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     ports:
       - "6379:6379"
+    expose:
+      - "6379"
     networks:
       - casino
 
+  redis-slave-1:
+    image: redis:latest
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - REDIS_REPLICATION_MODE=slave
+      - REDIS_MASTER_HOST=redis-master
+    ports:
+      - "6378:6379"
+    expose:
+      - "6379"
+    command: ["redis-server", "--slaveof", "redis-master", "6379"]
+    networks:
+      - casino
+
+
   users:
     build: ./users
-    ports:
-      - "3000:3000"
     expose:
       - "50051"
+      - "3000"
     depends_on:
       users-postgres:
         condition: service_healthy
-      redis:
+      redis-master:
         condition: service_healthy
-      kafka:
+      redis-slave-1:
         condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+    scale: 3
     environment:
       PORT: 3000
       GRPC_PORT: 50051
@@ -51,13 +77,15 @@ services:
       DB_USER: user
       DB_PASSWORD: password
       DB_NAME: users-service
-      REDIS_HOST: redis
+      REDIS_HOST: redis-master
       REDIS_PORT: 6379
+      REDIS_SLAVE_HOST: redis-slave-1 
+      REDIS_SLAVE_PORT: 6379 
       ACCESS_TOKEN_SECRET: 1be33b7da257ee02d36a5d690496d9f3021dcc8555b05702555fbc90e1ecbf33b03c908bb633630b80507efba23ba018bba4a0e3328da48aad3561c5f11352f9
       ACCESS_TOKEN_EXPIRATION: 10Min
       REFRESH_TOKEN_SECRET: e839582f1f279d067f899565d4626ec243ba323ea138c4e283fe5bebb828b9d3e9d87a6b8b3cadab2648bb0e846a1117cf9b9f0b34ff26e42bb5474dd7f714b8
       REFRESH_TOKEN_EXPIRATION: 24H
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
       KAFKAJS_NO_PARTITIONER_WARNING: 1
     restart: unless-stopped
     volumes:
@@ -65,28 +93,93 @@ services:
     networks:
       - casino
 
-  kafka:
-    image: bitnami/kafka:latest
+  kafka-0:
+    image: docker.io/bitnami/kafka:4.0
+    expose:
+      - "9092"
+      - "9093"
     environment:
-      KAFKA_ENABLE_KRAFT: yes
-      KAFKA_CFG_NODE_ID: 1
-      KAFKA_CFG_PROCESS_ROLES: controller,broker
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_KRAFT_CLUSTER_ID: GmOIfiOoQza2i1O3XPAyTA
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-    ports:
-      - "9092:9092"
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093"
+      KAFKA_KRAFT_CLUSTER_ID: "abcdefghijklmnopqrstuv"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-0:9092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_CFG_NUM_PARTITIONS: 3
+    volumes:
+      - kafka-0-data:/bitnami/kafka
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --describe"]
+      test: ["CMD-SHELL","kafka-broker-api-versions.sh --bootstrap-server kafka-0:9092 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - casino
 
+  kafka-1:
+    image: docker.io/bitnami/kafka:4.0
+    expose:
+      - "9092"
+      - "9093" 
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093"
+      KAFKA_KRAFT_CLUSTER_ID: "abcdefghijklmnopqrstuv"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:9092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_CFG_NUM_PARTITIONS: 3
     volumes:
-      - kafka-data:/bitnami/kafka
+      - kafka-1-data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server kafka-1:9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - casino
+
+  kafka-2:
+    image: docker.io/bitnami/kafka:4.0
+    expose:
+      - "9092"
+      - "9093"
+    environment:
+      KAFKA_CFG_NODE_ID: 2
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093"
+      KAFKA_KRAFT_CLUSTER_ID: "abcdefghijklmnopqrstuv"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:9092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_CFG_NUM_PARTITIONS: 3
+    volumes:
+      - kafka-2-data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server kafka-2:9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - casino
 
@@ -95,16 +188,16 @@ services:
     ports:
       - "9000:9000"
     environment:
-      KAFKA_BROKERCONNECT: kafka:9092
+      KAFKA_BROKERCONNECT: kafka-0:9092
     depends_on:
-      kafka:
+      kafka-0:
         condition: service_healthy
     restart: unless-stopped
     networks:
       - casino
 
   promotions-postgres:
-    image: postgres:latest
+    image: postgres:17
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -123,13 +216,12 @@ services:
 
   promotions:
     build: ./promotions
-    ports:
-      - "3001:3001"
     depends_on:
       promotions-postgres: 
         condition: service_healthy
-      kafka:
+      kafka-0:
         condition: service_healthy
+    scale: 3
     environment:
       PORT: 3001
       GRPC_PORT: 50051
@@ -141,7 +233,7 @@ services:
       DB_PASSWORD: password
       DB_NAME: promotions-service
       ACCESS_TOKEN_SECRET: 1be33b7da257ee02d36a5d690496d9f3021dcc8555b05702555fbc90e1ecbf33b03c908bb633630b80507efba23ba018bba4a0e3328da48aad3561c5f11352f9
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
       KAFKAJS_NO_PARTITIONER_WARNING: 1
     restart: unless-stopped
     volumes:
@@ -149,34 +241,46 @@ services:
     networks:
       - casino
 
-  mongo:
+
+  mongo-master:
     image: mongo:latest
-    container_name: mongo
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
-    environment:
-      MONGO_INITDB_DATABASE: notifications
+    environment: 
+      - MONGO_INITDB_DATABASE=notifications
+      - MONGO_INITDB_REPLICA_SET=rs0 
+    command: ["mongod", "--replSet", "rs0"]
     networks:
-    - casino
+      - casino
+
+  mongo-slave:
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_DATABASE=notifications
+      - MONGO_INITDB_REPLICA_SET=rs0
+    command: ["mongod", "--replSet", "rs0"]
+    networks:
+      - casino
 
   notifications:
     build: ./notifications
-    ports:
-      - "3002:3002"
     depends_on:
-      mongo:
+      mongo-master:
         condition: service_started 
-      kafka:
+      mongo-slave:
+        condition: service_started 
+      kafka-0:
         condition: service_healthy
+    scale: 3
     environment:
       PORT: 3002
       NODE_ENV: development
       ACCESS_TOKEN_SECRET: 1be33b7da257ee02d36a5d690496d9f3021dcc8555b05702555fbc90e1ecbf33b03c908bb633630b80507efba23ba018bba4a0e3328da48aad3561c5f11352f9
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
       KAFKAJS_NO_PARTITIONER_WARNING: 1
-      MONGO_URI: mongodb://mongo:27017/notifications
+      MONGO_URI: mongodb://mongo-master:27017,mongo-slave:27017/notifications?replicaSet=rs0
       MONGO_DATABASE: notifications
     restart: unless-stopped
     volumes:
@@ -184,12 +288,28 @@ services:
     networks:
       - casino  
 
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - users
+      - promotions
+      # - notifications
+    networks:
+      - casino
+
+
 volumes:
+  kafka-0-data:
+  kafka-1-data:
+  kafka-2-data:
   users-data:
   promotions-data:
-  kafka-data:
   mongo-data:
+
 
 networks:
   casino:
-    driver: bridge

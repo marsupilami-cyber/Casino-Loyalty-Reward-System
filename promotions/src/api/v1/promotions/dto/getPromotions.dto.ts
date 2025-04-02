@@ -1,5 +1,5 @@
 import { Expose, Transform, Type } from "class-transformer";
-import { IsString, IsOptional, IsBoolean, IsDateString, IsUUID, IsInt, Min, Max, IsEnum } from "class-validator";
+import { IsOptional, IsBoolean, IsDateString, IsUUID, IsInt, Min, IsEnum } from "class-validator";
 
 import { PromotionType } from "../../../../utility/types";
 

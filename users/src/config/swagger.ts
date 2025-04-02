@@ -77,7 +77,7 @@ const createSwaggerSpec = (version: string, description: string, apiPath: string
     },
     servers: [
       {
-        url: "http://localhost:3000",
+        url: "http://localhost/users",
         description: "Local server",
       },
       {

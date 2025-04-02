@@ -14,7 +14,7 @@ export enum KafkaNotificationsEvent {
 
 const kafka = new Kafka({
   clientId: "notifications-service",
-  brokers: [config.kafkaBroker],
+  brokers: config.kafkaBrokers,
   logLevel: 2,
 });
 
@@ -25,6 +25,30 @@ export const consumer = kafka.consumer({
 });
 
 export const connectKafka = async () => {
+  const admin = kafka.admin();
+
+  await admin.connect();
+
+  try {
+    const existingTopics = await admin.listTopics();
+
+    const topicsToCreate = Object.values(KafkaTopic).map((topic) => ({
+      topic,
+      numPartitions: 3,
+      replicationFactor: 3,
+    }));
+
+    const newTopics = topicsToCreate.filter((topic) => !existingTopics.includes(topic.topic));
+
+    if (newTopics.length > 0) {
+      await admin.createTopics({ topics: newTopics });
+    }
+  } catch (error) {
+    logger.error("Error while creating Kafka topics:", error);
+  } finally {
+    await admin.disconnect();
+  }
+
   await consumer.connect();
   logger.info("Kafka consumer connected successfully");
 };

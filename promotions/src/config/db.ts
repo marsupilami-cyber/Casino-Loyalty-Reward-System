@@ -1,7 +1,6 @@
 import PlayerPromotion from "../api/v1/promotions/models/playerPromotions.model";
 import Promotion from "../api/v1/promotions/models/promotions.model";
 
-import "reflect-metadata";
 import { DataSource } from "typeorm";
 
 import { NodeEnvEnum } from "../utility/types";
@@ -15,17 +14,20 @@ export const AppDataSource = new DataSource({
   username: config.dbUser,
   password: config.dbPassword,
   database: config.dbName,
-  synchronize: true,
+  synchronize: false,
   // logging: config.nodeEnv === NodeEnvEnum.DEVELOPMENT,
   entities: [Promotion, PlayerPromotion],
-  migrations: [],
+  migrations: ["src/migrations/**/*.ts"],
   subscribers: [],
 });
 
-export const connectDatabase = async () => {
+export const initDb = async () => {
   try {
     await AppDataSource.initialize();
     logger.info("Database connected successfully");
+
+    await AppDataSource.runMigrations();
+    logger.info("Database migrations applied successfully");
   } catch (error) {
     if (error instanceof Error) {
       throw new Error("connect to database: " + error.message);

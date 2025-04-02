@@ -10,9 +10,9 @@ export const config = {
   dbPort: Number(process.env.DB_PORT) || 5434,
   dbUser: process.env.DB_USER || "user",
   dbPassword: process.env.DB_PASSWORD || "password",
-  dbName: process.env.DB_NAME || "test",
+  dbName: process.env.DB_NAME || "promotions-service",
 
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET as string,
 
-  kafkaBroker: process.env.KAFKA_BROKER || "localhost:9092",
+  kafkaBrokers: process.env.KAFKA_BROKERS ? process.env.KAFKA_BROKERS.split(",") : ["localhost:9092"],
 };

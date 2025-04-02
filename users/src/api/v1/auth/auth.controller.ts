@@ -8,6 +8,7 @@ import { validate } from "class-validator";
 import express from "express";
 import { StatusCodes } from "http-status-codes";
 
+import { logger } from "../../../config/logger";
 import accessTokenMiddleware from "../../../middlewares/accessToken";
 import authorizeAdmin from "../../../middlewares/authorizeAdmin";
 import isActive from "../../../middlewares/isActive";
@@ -261,6 +262,7 @@ router.post("/refresh", refreshTokenMiddleware, isActive, async (req: ExtendedRe
     const response: ApiResponse<RefreshOutputDto> = {
       message: "User refresh token regenerated",
       success: true,
+      data,
     };
 
     res

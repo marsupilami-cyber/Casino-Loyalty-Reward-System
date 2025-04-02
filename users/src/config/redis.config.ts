@@ -3,27 +3,42 @@ import { createClient } from "redis";
 import { config } from "./config";
 import { logger } from "./logger";
 
-const redisClient = createClient({
+export const redisMasterClient = createClient({
   socket: {
-    host: config.redisHost,
-    port: config.redisPort,
+    host: config.redisMasterHost,
+    port: config.redisMasterPort,
+  },
+});
+
+export const redisSlaveClient = createClient({
+  socket: {
+    host: config.redisSlaveHost,
+    port: config.redisSlavePort,
   },
 });
 
 export const connectRedis = async () => {
-  redisClient.on("connect", () => {
-    logger.info("Redis client connected");
+  redisMasterClient.on("connect", () => {
+    logger.info("Redis master client connected");
   });
 
-  redisClient.on("error", (err) => {
-    throw Error("Redis error " + err.message);
+  redisMasterClient.on("error", (err) => {
+    throw Error("Redis master error " + err.message);
   });
 
-  await redisClient.connect();
+  await redisMasterClient.connect();
+
+  redisSlaveClient.on("connect", () => {
+    logger.info("Redis slave client connected");
+  });
+
+  redisSlaveClient.on("error", (err) => {
+    throw Error("Redis slave error " + err.message);
+  });
+
+  await redisSlaveClient.connect();
 };
 
 export function getRefreshTokenKey(userId: string) {
   return `${userId}:refresh_tokens`;
 }
-
-export default redisClient;

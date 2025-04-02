@@ -7,7 +7,6 @@ import { ExtendedRequest } from "../utility/types";
 
 const accessTokenMiddleware = (req: ExtendedRequest, res: Response, next: NextFunction) => {
   const accessToken = req.get("authorization")?.split(" ")[1];
-
   if (!accessToken) {
     throw new AppError(AppErrorCode.TokenNotProvided);
   }

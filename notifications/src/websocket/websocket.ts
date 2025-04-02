@@ -5,7 +5,7 @@ import WebSocket, { WebSocketServer } from "ws";
 import { config } from "../config/config";
 import { KafkaNotificationsEvent } from "../config/kafka";
 import { logger } from "../config/logger";
-import Notification, { NotificationItem, NotificationType } from "../models/notifications";
+import { NotificationItem, NotificationType } from "../models/notifications";
 import { authenticateWebSocket } from "./verifyToken";
 
 const clients = new Map<string, Set<WebSocket>>();
@@ -55,36 +55,40 @@ export const setupWebSocket = () => {
 };
 
 export const sendNotification = async (notificationMessage: string) => {
-  const messageValue = JSON.parse(notificationMessage);
+  try {
+    const messageValue = JSON.parse(notificationMessage);
 
-  const { user_id: userId, content, event_type: eventType } = messageValue;
+    const { user_id: userId, content, event_type: eventType } = messageValue;
 
-  const userSockets = clients.get(userId);
+    const userSockets = clients.get(userId);
 
-  let isRead = (userSockets && userSockets.size > 0) || false;
+    let isRead = (userSockets && userSockets.size > 0) || false;
 
-  if (userSockets) {
-    userSockets.forEach((ws) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(notification.content), (error) => {
-          if (error) {
-            isRead = false;
-            logger.error("Failed to send notification: " + error.message);
-          }
-        });
-      }
-    });
+    if (userSockets) {
+      userSockets.forEach((ws) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(content), (error) => {
+            if (error) {
+              isRead = false;
+              logger.error("Failed to send notification", error.message);
+            }
+          });
+        }
+      });
+    }
+
+    const notification: NotificationItem = {
+      content,
+      read: isRead,
+      type: NotificationType.Others,
+    };
+
+    if (eventType === KafkaNotificationsEvent.Promotions) {
+      notification.type = NotificationType.Promotion;
+    }
+
+    await saveNotificationToDB(userId, notification);
+  } catch (error) {
+    logger.error("error sending notifications", error);
   }
-
-  const notification: NotificationItem = {
-    content,
-    read: isRead,
-    type: NotificationType.Others,
-  };
-
-  if (eventType === KafkaNotificationsEvent.Promotions) {
-    notification.type = NotificationType.Promotion;
-  }
-
-  await saveNotificationToDB(userId, notification);
 };

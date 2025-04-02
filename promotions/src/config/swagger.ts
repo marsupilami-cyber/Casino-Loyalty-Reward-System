@@ -77,7 +77,7 @@ const createSwaggerSpec = (version: string, description: string, apiPath: string
     security: [{ BearerAuth: [] }],
     servers: [
       {
-        url: "http://localhost:3001",
+        url: "http://localhost/promotions",
         description: "Local server",
       },
       {
