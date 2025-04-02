@@ -1,6 +1,6 @@
 services:
   users-postgres:
-    image: postgres:17
+    image: postgres:latest
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -53,12 +53,29 @@ services:
       - casino
 
 
+  users-init:
+    build: ./users
+    command: ["npm", "run", "migration:run"]
+    environment:
+      DB_HOST: users-postgres
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: users-service
+    depends_on:
+      users-postgres:
+        condition: service_healthy
+    networks:
+      - casino
+
   users:
     build: ./users
     expose:
       - "50051"
       - "3000"
     depends_on:
+      users-init:
+        condition: service_completed_successfully
       users-postgres:
         condition: service_healthy
       redis-master:
@@ -67,7 +84,12 @@ services:
         condition: service_healthy
       kafka-0:
         condition: service_healthy
-    scale: 3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+    deploy:
+      replicas: 3
     environment:
       PORT: 3000
       GRPC_PORT: 50051
@@ -111,15 +133,18 @@ services:
       KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_CFG_NUM_PARTITIONS: 3
+      KAFKA_CFG_GROUP_MIN_SESSION_TIMEOUT_MS: 6000
+      KAFKA_CFG_GROUP_MAX_SESSION_TIMEOUT_MS: 300000
     volumes:
       - kafka-0-data:/bitnami/kafka
     healthcheck:
-      test: ["CMD-SHELL","kafka-broker-api-versions.sh --bootstrap-server kafka-0:9092 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka-0:9092 --list"]
+      start_period: 15s
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - casino
 
@@ -141,15 +166,18 @@ services:
       KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_CFG_NUM_PARTITIONS: 3
+      KAFKA_CFG_GROUP_MIN_SESSION_TIMEOUT_MS: 6000
+      KAFKA_CFG_GROUP_MAX_SESSION_TIMEOUT_MS: 300000
     volumes:
       - kafka-1-data:/bitnami/kafka
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server kafka-1:9092 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka-1:9092 --list"]
+      start_period: 15s
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - casino
 
@@ -171,15 +199,18 @@ services:
       KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_CFG_NUM_PARTITIONS: 3
+      KAFKA_CFG_GROUP_MIN_SESSION_TIMEOUT_MS: 6000
+      KAFKA_CFG_GROUP_MAX_SESSION_TIMEOUT_MS: 300000
     volumes:
       - kafka-2-data:/bitnami/kafka
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server kafka-2:9092 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka-2:9092 --list"]
+      start_period: 15s
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - casino
 
@@ -197,7 +228,7 @@ services:
       - casino
 
   promotions-postgres:
-    image: postgres:17
+    image: postgres:latest
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -214,14 +245,36 @@ services:
     networks:
       - casino
 
+  promotions-init:
+    build: ./promotions
+    command: ["npm", "run", "migration:run"]
+    environment:
+      DB_HOST: promotions-postgres
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: promotions-service
+    depends_on:
+      promotions-postgres: 
+        condition: service_healthy
+    networks:
+      - casino
+
   promotions:
     build: ./promotions
     depends_on:
+      promotions-init:
+        condition: service_completed_successfully
       promotions-postgres: 
         condition: service_healthy
       kafka-0:
         condition: service_healthy
-    scale: 3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+    deploy:
+      replicas: 3
     environment:
       PORT: 3001
       GRPC_PORT: 50051
@@ -235,6 +288,9 @@ services:
       ACCESS_TOKEN_SECRET: 1be33b7da257ee02d36a5d690496d9f3021dcc8555b05702555fbc90e1ecbf33b03c908bb633630b80507efba23ba018bba4a0e3328da48aad3561c5f11352f9
       KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
       KAFKAJS_NO_PARTITIONER_WARNING: 1
+      KAFKA_CONSUMER_SESSION_TIMEOUT: 30000
+      KAFKA_CONSUMER_HEARTBEAT_INTERVAL: 3000
+      KAFKA_CONSUMER_REBALANCE_TIMEOUT: 60000
     restart: unless-stopped
     volumes:
       - ./promotions:/app
@@ -273,7 +329,12 @@ services:
         condition: service_started 
       kafka-0:
         condition: service_healthy
-    scale: 3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+    deploy:
+      replicas: 3
     environment:
       PORT: 3002
       NODE_ENV: development
@@ -297,7 +358,7 @@ services:
     depends_on:
       - users
       - promotions
-      # - notifications
+      - notifications
     networks:
       - casino
 

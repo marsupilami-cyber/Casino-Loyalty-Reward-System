@@ -1,53 +1,53 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Attach to Docker users container",
-        "type": "node",
-        "request": "attach",
-        "port": 9229,
-        "address": "localhost",
-        "restart": true,
-        "localRoot": "${workspaceFolder}/users",
-        "remoteRoot": "/app",
-        "sourceMaps": true
-      },
-      {
-        "name": "Attach to Docker promotions container",
-        "type": "node",
-        "request": "attach",
-        "port": 9230,
-        "address": "localhost",
-        "restart": true,
-        "localRoot": "${workspaceFolder}/promotions",
-        "remoteRoot": "/app",
-        "sourceMaps": true
-      }, 
-      {
-        "name": "Attach to Docker notifications container",
-        "type": "node",
-        "request": "attach",
-        "port": 9231,
-        "address": "localhost",
-        "restart": true,
-        "localRoot": "${workspaceFolder}/notifications",
-        "remoteRoot": "/app",
-        "sourceMaps": true
-      },
-      {
-        "name": "Debug users tests",
-        "type": "node",
-        "request": "launch",
-        "cwd": "${workspaceFolder}/users",
-        "runtimeExecutable": "${workspaceFolder}/users/node_modules/.bin/jest",
-        "args": [
-          "--runInBand",
-          "--no-cache",
-          "--config", "${workspaceFolder}/users/jest.config.js",
-        ],
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen",
-        "skipFiles": ["<node_internals>/**"],
-      },
-    ]
-  }
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Docker users container",
+      "type": "node",
+      "request": "attach",
+      "port": 9330,
+      "address": "localhost",
+      "restart": true,
+      "localRoot": "${workspaceFolder}/users",
+      "remoteRoot": "/app",
+      "sourceMaps": true
+    },
+    {
+      "name": "Attach to Docker promotions container",
+      "type": "node",
+      "request": "attach",
+      "port": 9344,
+      "address": "localhost",
+      "restart": true,
+      "localRoot": "${workspaceFolder}/promotions",
+      "remoteRoot": "/app",
+      "sourceMaps": true
+    },
+    {
+      "name": "Attach to Docker notifications container",
+      "type": "node",
+      "request": "attach",
+      "port": 9347,
+      "address": "localhost",
+      "restart": true,
+      "localRoot": "${workspaceFolder}/notifications",
+      "remoteRoot": "/app",
+      "sourceMaps": true
+    },
+    {
+      "name": "Debug users tests",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/users",
+      "runtimeExecutable": "${workspaceFolder}/users/node_modules/.bin/jest",
+      "args": [
+        "--runInBand",
+        "--no-cache",
+        "--config", "${workspaceFolder}/users/jest.config.js",
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+    }
+  ]
+}

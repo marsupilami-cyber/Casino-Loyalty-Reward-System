@@ -25,9 +25,6 @@ export const initDb = async () => {
   try {
     await AppDataSource.initialize();
     logger.info("Database connected successfully");
-
-    await AppDataSource.runMigrations();
-    logger.info("Database migrations applied successfully");
   } catch (error) {
     if (error instanceof Error) {
       throw new Error("connect to database: " + error.message);

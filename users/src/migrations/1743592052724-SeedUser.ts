@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class SeedUsers1743521258668 implements MigrationInterface {
+export class SeedUser1743592052724 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const hashedPassword = await bcrypt.hash("password", 10);
 
