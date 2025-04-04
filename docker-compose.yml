@@ -93,6 +93,7 @@ services:
     environment:
       PORT: 3000
       GRPC_PORT: 50051
+      GRPC_HOST: users
       NODE_ENV: development
       DB_HOST: users-postgres
       DB_PORT: 5432
@@ -126,17 +127,10 @@ services:
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093"
       KAFKA_KRAFT_CLUSTER_ID: "abcdefghijklmnopqrstuv"
       KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
-      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-0:9092"
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
-      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_CFG_NUM_PARTITIONS: 3
-      KAFKA_CFG_GROUP_MIN_SESSION_TIMEOUT_MS: 6000
-      KAFKA_CFG_GROUP_MAX_SESSION_TIMEOUT_MS: 300000
     volumes:
       - kafka-0-data:/bitnami/kafka
     healthcheck:
@@ -159,17 +153,10 @@ services:
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093"
       KAFKA_KRAFT_CLUSTER_ID: "abcdefghijklmnopqrstuv"
       KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
-      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:9092"
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
-      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_CFG_NUM_PARTITIONS: 3
-      KAFKA_CFG_GROUP_MIN_SESSION_TIMEOUT_MS: 6000
-      KAFKA_CFG_GROUP_MAX_SESSION_TIMEOUT_MS: 300000
     volumes:
       - kafka-1-data:/bitnami/kafka
     healthcheck:
@@ -192,17 +179,10 @@ services:
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093"
       KAFKA_KRAFT_CLUSTER_ID: "abcdefghijklmnopqrstuv"
       KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
-      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:9092"
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
-      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_CFG_NUM_PARTITIONS: 3
-      KAFKA_CFG_GROUP_MIN_SESSION_TIMEOUT_MS: 6000
-      KAFKA_CFG_GROUP_MAX_SESSION_TIMEOUT_MS: 300000
     volumes:
       - kafka-2-data:/bitnami/kafka
     healthcheck:
@@ -290,7 +270,6 @@ services:
       KAFKAJS_NO_PARTITIONER_WARNING: 1
       KAFKA_CONSUMER_SESSION_TIMEOUT: 30000
       KAFKA_CONSUMER_HEARTBEAT_INTERVAL: 3000
-      KAFKA_CONSUMER_REBALANCE_TIMEOUT: 60000
     restart: unless-stopped
     volumes:
       - ./promotions:/app
@@ -302,31 +281,68 @@ services:
     image: mongo:latest
     ports:
       - "27017:27017"
+    environment: 
+      MONGO_INITDB_DATABASE: notifications
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - mongo-data:/data/db
-    environment: 
-      - MONGO_INITDB_DATABASE=notifications
-      - MONGO_INITDB_REPLICA_SET=rs0 
-    command: ["mongod", "--replSet", "rs0"]
     networks:
       - casino
 
   mongo-slave:
     image: mongo:latest
+    ports:
+      - "27018:27017"
     environment:
-      - MONGO_INITDB_DATABASE=notifications
-      - MONGO_INITDB_REPLICA_SET=rs0
-    command: ["mongod", "--replSet", "rs0"]
+      MONGO_INITDB_DATABASE: notifications
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    depends_on:
+      mongo-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - mongo-slave-data:/data/db
     networks:
       - casino
 
+  mongo-init:
+    image: mongo:latest
+    restart: "no"
+    depends_on:
+      mongo-master:
+        condition: service_healthy
+      mongo-slave:
+        condition: service_healthy
+    command: >
+      mongosh --host mongo-master:27017 --eval '
+      if (rs.status().ok !== 1) {
+        rs.initiate({
+          _id: "rs0",
+          members: [
+            {_id: 0, host: "mongo-master:27017", priority: 2},
+            {_id: 1, host: "mongo-slave:27017", priority: 1}
+          ]
+        })
+      }'
+
+    networks:
+      - casino
+
+  
   notifications:
     build: ./notifications
     depends_on:
-      mongo-master:
-        condition: service_started 
-      mongo-slave:
-        condition: service_started 
+      mongo-init:
+        condition: service_completed_successfully
       kafka-0:
         condition: service_healthy
       kafka-1:
@@ -340,14 +356,13 @@ services:
       NODE_ENV: development
       ACCESS_TOKEN_SECRET: 1be33b7da257ee02d36a5d690496d9f3021dcc8555b05702555fbc90e1ecbf33b03c908bb633630b80507efba23ba018bba4a0e3328da48aad3561c5f11352f9
       KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
-      KAFKAJS_NO_PARTITIONER_WARNING: 1
       MONGO_URI: mongodb://mongo-master:27017,mongo-slave:27017/notifications?replicaSet=rs0
       MONGO_DATABASE: notifications
     restart: unless-stopped
     volumes:
       - ./notifications:/app
     networks:
-      - casino  
+      - casino
 
   nginx:
     image: nginx:latest
@@ -370,7 +385,7 @@ volumes:
   users-data:
   promotions-data:
   mongo-data:
-
+  mongo-slave-data:
 
 networks:
   casino:

@@ -10,6 +10,14 @@ export enum RolesEnum {
   ADMIN = "ADMIN",
 }
 
+export enum PromotionType {
+  WELCOME_BONUS = "WELCOME_BONUS",
+  VIP = "VIP_PROMOTION",
+  BONUS = "BONUS",
+}
+
+export const uniquePromotionTypes: PromotionType[] = [PromotionType.WELCOME_BONUS];
+
 export interface ExtendedRequest extends Request {
   userId?: string;
   role?: string;
@@ -36,11 +44,3 @@ export interface ApiError {
     details?: Record<string, string>[];
   };
 }
-
-export enum PromotionType {
-  WELCOME_BONUS = "WELCOME_BONUS",
-  VIP = "VIP_PROMOTION",
-  BONUS = "BONUS",
-}
-
-export const uniquePromotionTypes: PromotionType[] = [PromotionType.WELCOME_BONUS];

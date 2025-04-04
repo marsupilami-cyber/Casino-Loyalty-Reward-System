@@ -41,7 +41,7 @@ Each microservice is independently deployed and communicates via Kafka, REST API
 
 3. **Promotion Claiming**:
    - A player claims a promotion via the Promotions service.
-   - The Promotions service sends a gRPC request to the Users service to update the player's balance.
+   - The Promotions service sends a gRPC request to the Users service to update the player's balance and save transaction.
 
 ## Kafka Topics and Events
 
@@ -60,7 +60,7 @@ Each microservice is independently deployed and communicates via Kafka, REST API
 - **Redis**: Used by the Users service for caching and storing refresh tokens.
 - **MongoDB**: Used by the Notifications service to store notification data.
 
-## Deployment
+## Skaling
 
 - **Service Replication**: Each microservice is replicated three times for high availability.
 - **Kafka**: Configured with three controllers/brokers using Kraft mode for fault tolerance.
@@ -80,24 +80,6 @@ Each microservice is independently deployed and communicates via Kafka, REST API
 - **API Documentation**: Swagger
 - **Authentication**: JWT with refresh token rotation
 - **WebSocket**: For real-time notifications
-
-## API Endpoints
-
-### Users Service
-
-- **POST /register**: Register a new player.
-- **POST /login**: Authenticate a player and issue a JWT token.
-- **POST /refresh-token**: Rotate the refresh token.
-
-### Promotions Service
-
-- **GET /promotions**: Retrieve all promotions.
-- **POST /promotions**: Create a new promotion (admin only).
-- **POST /promotions/assign**: Assign a promotion to a player (staff/admin only).
-
-### Notifications Service
-
-- **WebSocket**: Sends real-time notifications to logged-in users.
 
 ## Additional Notes
 
