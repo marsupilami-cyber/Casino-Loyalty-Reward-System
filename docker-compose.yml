@@ -277,72 +277,22 @@ services:
       - casino
 
 
-  mongo-master:
+  mongo:
     image: mongo:latest
     ports:
       - "27017:27017"
-    environment: 
-      MONGO_INITDB_DATABASE: notifications
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     volumes:
       - mongo-data:/data/db
-    networks:
-      - casino
-
-  mongo-slave:
-    image: mongo:latest
-    ports:
-      - "27018:27017"
     environment:
       MONGO_INITDB_DATABASE: notifications
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
-    depends_on:
-      mongo-master:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - mongo-slave-data:/data/db
     networks:
-      - casino
+    - casino
 
-  mongo-init:
-    image: mongo:latest
-    restart: "no"
-    depends_on:
-      mongo-master:
-        condition: service_healthy
-      mongo-slave:
-        condition: service_healthy
-    command: >
-      mongosh --host mongo-master:27017 --eval '
-      if (rs.status().ok !== 1) {
-        rs.initiate({
-          _id: "rs0",
-          members: [
-            {_id: 0, host: "mongo-master:27017", priority: 2},
-            {_id: 1, host: "mongo-slave:27017", priority: 1}
-          ]
-        })
-      }'
-
-    networks:
-      - casino
-
-  
   notifications:
     build: ./notifications
     depends_on:
-      mongo-init:
-        condition: service_completed_successfully
+      mongo:
+        condition: service_started
       kafka-0:
         condition: service_healthy
       kafka-1:
@@ -356,13 +306,14 @@ services:
       NODE_ENV: development
       ACCESS_TOKEN_SECRET: 1be33b7da257ee02d36a5d690496d9f3021dcc8555b05702555fbc90e1ecbf33b03c908bb633630b80507efba23ba018bba4a0e3328da48aad3561c5f11352f9
       KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
-      MONGO_URI: mongodb://mongo-master:27017,mongo-slave:27017/notifications?replicaSet=rs0
+      MONGO_URI: mongodb://mongo:27017/notifications
       MONGO_DATABASE: notifications
     restart: unless-stopped
     volumes:
       - ./notifications:/app
     networks:
       - casino
+
 
   nginx:
     image: nginx:latest
@@ -385,7 +336,6 @@ volumes:
   users-data:
   promotions-data:
   mongo-data:
-  mongo-slave-data:
 
 networks:
   casino:
