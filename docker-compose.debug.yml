@@ -2,7 +2,7 @@ services:
   users:
     command: npm run debug
     ports:
-      - "9330-9333:9229"
+      - "9330-9334:9229"
 
   promotions:
     command: npm run debug
